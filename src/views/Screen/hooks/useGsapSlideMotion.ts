@@ -1,7 +1,11 @@
 import { nextTick, onUnmounted, watch, type Ref } from 'vue'
 import { gsap } from 'gsap'
 import type { SlideMotion } from '@/types/slides'
-import { createMotionTimeline, resolveMotionTargets } from '@/utils/gsapMotion'
+import {
+  createMotionTimeline,
+  disposeMotionTimeline,
+  resolveMotionTargets,
+} from '@/utils/gsapMotion'
 
 export default (
   slideRef: Readonly<Ref<HTMLElement | null>>,
@@ -14,6 +18,7 @@ export default (
 
   const teardown = () => {
     buildToken += 1
+    disposeMotionTimeline(timeline)
     timeline = null
     matchMedia?.revert()
     matchMedia = null
@@ -21,6 +26,7 @@ export default (
 
   const build = async () => {
     const token = ++buildToken
+    disposeMotionTimeline(timeline)
     matchMedia?.revert()
     matchMedia = null
     timeline = null
@@ -61,7 +67,7 @@ export default (
         if (motion.autoplay !== false) timeline.play(0)
 
         return () => {
-          timeline?.kill()
+          disposeMotionTimeline(timeline)
           timeline = null
         }
       },

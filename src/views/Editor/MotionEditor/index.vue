@@ -77,6 +77,23 @@
               <option value="to">动画到状态</option>
               <option value="fromTo">起止状态</option>
               <option value="set">瞬时设置</option>
+              <option value="effect">GSAPify 注册效果</option>
+            </select>
+          </label>
+          <label v-if="selectedStep.method === 'effect'">
+            <span>GSAPify 效果</span>
+            <select :value="selectedStep.effectId" @change="updateSelectedEffectId">
+              <optgroup
+                v-for="category in GSAPIFY_EFFECT_CATEGORIES"
+                :key="category.id"
+                :label="category.label"
+              >
+                <option
+                  v-for="effect in category.effects"
+                  :key="effect.id"
+                  :value="effect.id"
+                >{{ effect.label }}</option>
+              </optgroup>
             </select>
           </label>
           <div class="two-fields">
@@ -187,6 +204,24 @@
           </button>
         </div>
 
+        <div class="gsapify-picker">
+          <span>GSAPify 100</span>
+          <select v-model="selectedGsapifyEffectId">
+            <optgroup
+              v-for="category in GSAPIFY_EFFECT_CATEGORIES"
+              :key="category.id"
+              :label="category.label"
+            >
+              <option
+                v-for="effect in category.effects"
+                :key="effect.id"
+                :value="effect.id"
+              >{{ effect.label }}</option>
+            </optgroup>
+          </select>
+          <button @click="addGsapifyEffectFrame">添加</button>
+        </div>
+
         <div class="toolbar-group timeline-settings">
           <label>分镜 <input type="number" min="1" max="120" step="0.5" :value="sceneDuration" @change="updateSceneDuration"></label>
           <label>缩放 <input type="range" min="45" max="180" step="5" v-model.number="pixelsPerSecond"></label>
@@ -281,8 +316,14 @@ import { gsap } from 'gsap'
 import { useMainStore, useSlidesStore, useSnapshotStore } from '@/store'
 import type { PPTElement, Slide, SlideMotion, SlideMotionTween, SlideMotionVars } from '@/types/slides'
 import {
+  GSAPIFY_EFFECT_CATEGORIES,
+  GSAPIFY_EFFECTS,
+  GSAPIFY_EFFECTS_BY_ID,
+} from '@/data/gsapifyEffects'
+import {
   calculateMotionStepTimings,
   createMotionTimeline,
+  disposeMotionTimeline,
   getMotionDuration,
   type MotionStepTiming,
 } from '@/utils/gsapMotion'
@@ -431,6 +472,7 @@ const isPlaying = ref(false)
 const pixelsPerSecond = ref(90)
 const selectedTrackId = ref('$stage')
 const selectedStepIndex = ref(-1)
+const selectedGsapifyEffectId = ref(GSAPIFY_EFFECTS[0].id)
 const dragPreview = ref<{ index: number; start: number; duration: number } | null>(null)
 
 let timeline: gsap.core.Timeline | null = null
@@ -577,6 +619,7 @@ const refreshSelectedOutline = () => {
 const rebuildTimeline = async (preserveTime = true) => {
   const targetTime = preserveTime ? currentTime.value : 0
   isPlaying.value = false
+  disposeMotionTimeline(timeline)
   motionContext?.revert()
   motionContext = null
   timeline = null
@@ -655,6 +698,9 @@ const selectStep = (index: number, trackId?: string) => {
 const frameLabel = (index: number) => {
   const step = motion.value?.steps[index]
   if (!step) return ''
+  if (step.method === 'effect') {
+    return GSAPIFY_EFFECTS_BY_ID.get(step.effectId || '')?.label || 'GSAPify'
+  }
   const labels = { from: '入场', to: '动作', fromTo: '关键帧', set: '设置' }
   return labels[step.method]
 }
@@ -683,6 +729,41 @@ const addPresetFrame = (preset: MotionPreset) => {
   selectedStepIndex.value = nextMotion.steps.length - 1
   selectedTrackId.value = target
   commitMotion(nextMotion, `添加预设：${preset.label}`)
+}
+
+const addGsapifyEffectFrame = () => {
+  const effect = GSAPIFY_EFFECTS_BY_ID.get(selectedGsapifyEffectId.value)
+  if (!effect) return
+
+  const elementTrack = tracks.value.find(track => !track.id.startsWith('$'))
+  const target = effect.scope === 'stage'
+    ? '$stage'
+    : effect.scope === 'background'
+      ? '$background'
+      : selectedTrackId.value.startsWith('$')
+        ? elementTrack?.id
+        : selectedTrackId.value
+  if (!target) return
+
+  const nextMotion = ensureMotion()
+  nextMotion.steps.push({
+    id: nanoid(10),
+    method: 'effect',
+    effectId: effect.id,
+    elIds: [target],
+    position: snapTime(currentTime.value),
+    vars: {
+      duration: effect.duration,
+      ease: 'power3.out',
+    },
+  })
+  nextMotion.duration = Math.max(
+    nextMotion.duration || 0,
+    currentTime.value + effect.duration
+  )
+  selectedStepIndex.value = nextMotion.steps.length - 1
+  selectedTrackId.value = target
+  commitMotion(nextMotion, `添加 GSAPify 效果：${effect.label}`)
 }
 
 const deleteSelectedStep = () => {
@@ -786,13 +867,44 @@ const updateStepMethod = (event: Event) => {
       step.fromVars = step.fromVars || { autoAlpha: 0, scale: 0.8 }
       step.toVars = step.toVars || oldVars || { duration: 0.6, ease: 'power3.out' }
       delete step.vars
+      delete step.effectId
+    }
+    else if (method === 'effect') {
+      const effect = GSAPIFY_EFFECTS_BY_ID.get(step.effectId || selectedGsapifyEffectId.value)
+        || GSAPIFY_EFFECTS[0]
+      step.effectId = effect.id
+      step.vars = {
+        duration: effect.duration,
+        ease: 'power3.out',
+      }
+      delete step.fromVars
+      delete step.toVars
     }
     else {
       step.vars = oldVars || step.toVars || { duration: 0.6, ease: 'power3.out' }
       delete step.fromVars
       delete step.toVars
+      delete step.effectId
     }
   }, '修改动画方式')
+}
+
+const updateSelectedEffectId = (event: Event) => {
+  const effectId = eventInput(event).value
+  const effect = GSAPIFY_EFFECTS_BY_ID.get(effectId)
+  if (!effect) return
+  selectedGsapifyEffectId.value = effectId
+  updateSelectedStep(step => {
+    step.method = 'effect'
+    step.effectId = effect.id
+    step.vars = {
+      ...(step.vars || {}),
+      duration: effect.duration,
+      ease: typeof step.vars?.ease === 'string' ? step.vars.ease : 'power3.out',
+    }
+    delete step.fromVars
+    delete step.toVars
+  }, `更换 GSAPify 效果：${effect.label}`)
 }
 
 const updateStartTime = (event: Event) => {
@@ -956,6 +1068,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   resizeObserver?.disconnect()
+  disposeMotionTimeline(timeline)
   motionContext?.revert()
   mainStore.setDisableHotkeysState(false)
 })
@@ -1467,6 +1580,43 @@ button {
       width: 6px;
       height: 14px;
       border-radius: 2px;
+    }
+  }
+}
+
+.gsapify-picker {
+  width: 250px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  > span {
+    color: #c4b5fd;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+
+  select {
+    min-width: 0;
+    flex: 1;
+    height: 27px;
+    color: var(--motion-text);
+    background: #15151d;
+    border: 1px solid #514b70;
+    border-radius: 4px;
+  }
+
+  button {
+    height: 27px;
+    padding: 0 8px;
+    flex-shrink: 0;
+    border-radius: 4px;
+    background: #6d4dd8;
+    font-size: 11px;
+
+    &:hover {
+      background: #805eea;
     }
   }
 }

@@ -94,13 +94,26 @@ PPTist 原有的 `animations` 主要表达入场、退场、强调，以及
           "duration": 4,
           "ease": "power2.out"
         }
+      },
+      {
+        "id": "motion-01-003",
+        "method": "effect",
+        "effectId": "stagger-letter-reveal",
+        "elIds": ["element-id"],
+        "position": 1.4,
+        "vars": {
+          "duration": 1.2,
+          "ease": "power3.out"
+        }
       }
     ]
   }
 }
 ```
 
-`method` 支持 `set`、`from`、`to`、`fromTo`。`position` 支持 GSAP timeline
+`method` 支持 `set`、`from`、`to`、`fromTo`、`effect`。`effect` 帧通过
+`effectId` 引用播放器本地注册的安全效果，不执行导入文件中的 JavaScript。
+`position` 支持 GSAP timeline
 位置参数，例如 `0`、`+=0.2`、`<`、`<0.15`、`>-0.08`。
 
 特殊轨道：
@@ -111,6 +124,31 @@ PPTist 原有的 `animations` 主要表达入场、退场、强调，以及
 
 为避免导入文件执行任意脚本，播放器只接受元素 ID 和特殊轨道，并过滤为白名单内
 的 GSAP 属性；不接受任意 CSS 选择器、回调函数或 JavaScript 字符串。
+
+## GSAPify 14 类 / 100 效果
+
+动效时间轴的“GSAPify 100”选择器提供 14 个分类、100 个注册效果。每个效果
+都生成一个可拖动、可拉伸、可复制、可撤销重做的 `effect` 帧。
+
+播放器注册并适配：
+
+- Core、Timeline、ScrollTrigger 视觉语义；
+- SplitText、TextPlugin、ScrambleText；
+- DrawSVG、MorphSVG、MotionPath；
+- Physics2D、CustomBounce、CustomWiggle；
+- Flip、Draggable、Inertia、Observer。
+
+PPT 播放没有网页滚动容器，因此 ScrollTrigger 类效果由分镜播放头驱动，保留
+滚动动画的视觉过程和可拖动时间，而不是等待浏览器滚动。Hover、Draggable、
+Inertia、Observer 类效果保留鼠标和触控交互，同时在分镜时间轴中占有可编辑帧。
+
+SVG 插件优先使用目标 PPT 元素内部的真实 SVG 路径。若普通 PPT 元素没有可用
+路径，注册效果使用 clip-path、transform 或形状补间回退，保证该效果仍可播放。
+MotionPath 会优先使用目标中的路径，无路径时使用播放器生成的确定性轨迹。
+
+完整效果目录位于 `src/data/gsapifyEffects.ts`，运行时适配位于
+`src/utils/gsapifyEffectRuntime.ts`。未知 `effectId` 会被忽略，不能借此执行
+任意代码。
 
 ## 播放生命周期
 

@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PPTist · GSAPify 100 Effects Lab</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, "Microsoft YaHei", system-ui, sans-serif;
+      background: #090a10;
+      color: #f8fafc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 72% 12%, rgba(124, 58, 237, .25), transparent 31%),
+        radial-gradient(circle at 8% 88%, rgba(14, 165, 233, .16), transparent 28%),
+        #090a10;
+    }
+    button, input, select { font: inherit; }
+    button { color: inherit; cursor: pointer; }
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 330px minmax(0, 1fr);
+    }
+    .library {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #262837;
+      background: rgba(13, 14, 22, .92);
+      backdrop-filter: blur(22px);
+    }
+    .library-header {
+      padding: 22px 20px 16px;
+      border-bottom: 1px solid #262837;
+    }
+    .eyebrow {
+      color: #a78bfa;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 7px 0 5px;
+      font-size: 22px;
+      line-height: 1.2;
+    }
+    .library-header p {
+      margin: 0;
+      color: #969bad;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .filters {
+      padding: 13px;
+      display: grid;
+      gap: 8px;
+      border-bottom: 1px solid #262837;
+    }
+    .filters input,
+    .filters select {
+      width: 100%;
+      height: 36px;
+      padding: 0 11px;
+      color: #f8fafc;
+      background: #141620;
+      border: 1px solid #303345;
+      border-radius: 8px;
+      outline: none;
+    }
+    .filters input:focus,
+    .filters select:focus { border-color: #8b5cf6; }
+    .effect-list {
+      min-height: 0;
+      flex: 1;
+      overflow: auto;
+      padding: 10px;
+    }
+    .effect-button {
+      width: 100%;
+      margin-bottom: 6px;
+      padding: 10px 11px;
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr);
+      gap: 9px;
+      text-align: left;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 9px;
+    }
+    .effect-button:hover { background: #181a26; }
+    .effect-button.active {
+      background: linear-gradient(135deg, rgba(124, 58, 237, .28), rgba(14, 165, 233, .10));
+      border-color: rgba(167, 139, 250, .48);
+    }
+    .effect-num {
+      padding-top: 2px;
+      color: #676b7e;
+      font-family: "JetBrains Mono", Consolas, monospace;
+      font-size: 10px;
+    }
+    .effect-copy {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .effect-copy strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 12px;
+    }
+    .effect-copy small {
+      overflow: hidden;
+      color: #777c90;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 10px;
+    }
+    .workspace {
+      min-width: 0;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+    }
+    .topbar {
+      min-height: 68px;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      border-bottom: 1px solid #262837;
+      background: rgba(10, 11, 17, .68);
+    }
+    .effect-meta {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 13px;
+    }
+    .effect-icon {
+      width: 39px;
+      height: 39px;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      color: #ddd6fe;
+      background: linear-gradient(145deg, #7c3aed, #2563eb);
+      border-radius: 11px;
+      box-shadow: 0 8px 28px rgba(124, 58, 237, .35);
+    }
+    .effect-meta strong {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 15px;
+    }
+    .effect-meta small { color: #858a9c; }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .controls button {
+      height: 34px;
+      padding: 0 13px;
+      background: #1a1c28;
+      border: 1px solid #34374a;
+      border-radius: 8px;
+    }
+    .controls button:hover { background: #252839; }
+    .controls .primary {
+      color: white;
+      background: #7c3aed;
+      border-color: #8b5cf6;
+    }
+    .controls .primary:hover { background: #8b5cf6; }
+    .stage-shell {
+      min-height: 0;
+      padding: 34px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+    .stage-frame {
+      width: min(100%, 1000px);
+      aspect-ratio: 16 / 10;
+      position: relative;
+      overflow: hidden;
+      background: #121421;
+      border: 1px solid #373a50;
+      border-radius: 18px;
+      box-shadow: 0 32px 90px rgba(0, 0, 0, .58);
+    }
+    .screen-slide,
+    .motion-layer,
+    .background {
+      position: absolute;
+      inset: 0;
+    }
+    .background {
+      background:
+        radial-gradient(circle at 74% 25%, rgba(56, 189, 248, .22), transparent 26%),
+        radial-gradient(circle at 18% 82%, rgba(244, 114, 182, .17), transparent 27%),
+        linear-gradient(135deg, #17162b, #0c1220 54%, #111827);
+      background-size: 160% 160%;
+    }
+    .motion-layer {
+      z-index: 1;
+      overflow: hidden;
+      perspective: 1100px;
+    }
+    .screen-element {
+      position: absolute;
+      pointer-events: none;
+    }
+    .screen-element > * { pointer-events: auto; }
+    .demo-title {
+      left: 8%;
+      top: 12%;
+      width: 72%;
+    }
+    .demo-title .text {
+      font-size: clamp(30px, 4.4vw, 66px);
+      font-weight: 850;
+      line-height: 1.02;
+      letter-spacing: -.045em;
+      text-wrap: balance;
+    }
+    .demo-title .kicker {
+      margin-bottom: 10px;
+      color: #67e8f9;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .19em;
+      text-transform: uppercase;
+    }
+    .demo-card-a,
+    .demo-card-b {
+      top: 55%;
+      width: 29%;
+      height: 25%;
+    }
+    .demo-card-a { left: 8%; }
+    .demo-card-b { left: 39%; }
+    .glass-card {
+      width: 100%;
+      height: 100%;
+      padding: 18px;
+      background: linear-gradient(145deg, rgba(255,255,255,.13), rgba(255,255,255,.045));
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 18px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.2);
+      backdrop-filter: blur(18px);
+    }
+    .glass-card span {
+      display: block;
+      margin-bottom: 12px;
+      color: #a5b4fc;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .glass-card strong { font-size: clamp(18px, 2vw, 29px); }
+    .demo-diagram {
+      right: 7%;
+      top: 47%;
+      width: 25%;
+      height: 36%;
+    }
+    .diagram {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      filter: drop-shadow(0 12px 24px rgba(34, 211, 238, .18));
+    }
+    .demo-button {
+      right: 7%;
+      top: 16%;
+    }
+    .action-button {
+      padding: 12px 18px;
+      color: #0f172a;
+      background: linear-gradient(135deg, #67e8f9, #c4b5fd);
+      border: 0;
+      border-radius: 999px;
+      font-weight: 800;
+      box-shadow: 0 10px 30px rgba(103, 232, 249, .24);
+    }
+    .demo-counter {
+      left: 69%;
+      top: 31%;
+    }
+    .counter {
+      color: #fbbf24;
+      font-family: "JetBrains Mono", Consolas, monospace;
+      font-size: clamp(24px, 3vw, 48px);
+      font-weight: 900;
+    }
+    .bottom-panel {
+      padding: 12px 22px 15px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: center;
+      border-top: 1px solid #262837;
+      background: rgba(12, 13, 20, .88);
+    }
+    .playhead-row {
+      display: grid;
+      grid-template-columns: 52px minmax(0, 1fr) 52px;
+      gap: 10px;
+      align-items: center;
+    }
+    .playhead-row span {
+      color: #888da0;
+      font-family: Consolas, monospace;
+      font-size: 11px;
+    }
+    .playhead-row input { width: 100%; accent-color: #8b5cf6; }
+    .validation {
+      min-width: 190px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      color: #9da2b5;
+      font-size: 11px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #64748b;
+      box-shadow: 0 0 0 4px rgba(100,116,139,.12);
+    }
+    .validation.running .status-dot {
+      background: #fbbf24;
+      animation: pulse .8s infinite alternate;
+    }
+    .validation.pass .status-dot {
+      background: #34d399;
+      box-shadow: 0 0 0 4px rgba(52,211,153,.12);
+    }
+    .validation.fail .status-dot {
+      background: #fb7185;
+      box-shadow: 0 0 0 4px rgba(251,113,133,.12);
+    }
+    @keyframes pulse { to { opacity: .35; transform: scale(.8); } }
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+      .library { height: 42vh; border-right: 0; border-bottom: 1px solid #262837; }
+      .workspace { min-height: 58vh; }
+      .stage-shell { padding: 16px; }
+      .topbar { padding: 10px 14px; }
+      .controls button:not(.primary) { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="library">
+      <header class="library-header">
+        <div class="eyebrow">PPTist Motion Runtime</div>
+        <h1>GSAPify 100 Effects Lab</h1>
+        <p>14 类动画 · 注册插件运行时 · 时间轴与交互效果演示</p>
+      </header>
+      <div class="filters">
+        <input id="search" type="search" placeholder="搜索效果、插件或 ID">
+        <select id="category-filter"></select>
+      </div>
+      <div id="effect-list" class="effect-list"></div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div class="effect-meta">
+          <div class="effect-icon">◆</div>
+          <div>
+            <strong id="active-title">Stagger Letter Reveal</strong>
+            <small id="active-subtitle">Text & Typography · SplitText, ScrollTrigger</small>
+          </div>
+        </div>
+        <div class="controls">
+          <button id="restart">↺ 重播</button>
+          <button id="pause">Ⅱ 暂停</button>
+          <button id="run-all">验证 100 个效果</button>
+          <button id="play" class="primary">▶ 播放</button>
+        </div>
+      </header>
+
+      <section class="stage-shell">
+        <div class="stage-frame">
+          <div id="demo-stage" class="screen-slide"></div>
+        </div>
+      </section>
+
+      <footer class="bottom-panel">
+        <div class="playhead-row">
+          <span id="current-time">00:00</span>
+          <input id="playhead" type="range" min="0" max="1" step="0.001" value="0">
+          <span id="duration-time">01:20</span>
+        </div>
+        <div id="validation" class="validation">
+          <span class="status-dot"></span>
+          <span id="validation-text">等待全量验证</span>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script type="module">
+    import {
+      GSAPIFY_EFFECTS,
+      GSAPIFY_EFFECTS_BY_ID,
+      GSAPIFY_EFFECT_CATEGORIES,
+    } from '/src/data/gsapifyEffects.ts'
+    import {
+      createMotionTimeline,
+      disposeMotionTimeline,
+    } from '/src/utils/gsapMotion.ts'
+
+    const STAGE_HTML = `
+      <div class="background"></div>
+      <div class="motion-layer">
+        <div class="screen-element demo-title" data-element-id="headline">
+          <div class="demo-text">
+            <div class="kicker">Registered Effect Runtime</div>
+            <div class="text">Animate ideas,<br>not just slides.</div>
+          </div>
+        </div>
+        <div class="screen-element demo-card-a" data-element-id="card-a">
+          <div class="glass-card"><span>Storyboard</span><strong>One slide<br>is one shot.</strong></div>
+        </div>
+        <div class="screen-element demo-card-b" data-element-id="card-b">
+          <div class="glass-card"><span>Timeline</span><strong>Every beat<br>is editable.</strong></div>
+        </div>
+        <div class="screen-element demo-diagram" data-element-id="diagram">
+          <svg class="diagram" viewBox="0 0 260 190">
+            <path d="M18 110 C56 18 166 18 238 103" fill="none" stroke="#67e8f9" stroke-width="6" stroke-linecap="round"/>
+            <path d="M28 150 C76 74 176 76 230 151" fill="none" stroke="#c4b5fd" stroke-width="6" stroke-linecap="round"/>
+            <circle cx="18" cy="110" r="9" fill="#fbbf24"/>
+            <circle cx="238" cy="103" r="9" fill="#fb7185"/>
+          </svg>
+        </div>
+        <div class="screen-element demo-button" data-element-id="button">
+          <button class="action-button">INTERACT</button>
+        </div>
+        <div class="screen-element demo-counter" data-element-id="counter">
+          <div class="counter">100</div>
+        </div>
+      </div>
+    `
+
+    const stage = document.querySelector('#demo-stage')
+    const list = document.querySelector('#effect-list')
+    const search = document.querySelector('#search')
+    const categoryFilter = document.querySelector('#category-filter')
+    const title = document.querySelector('#active-title')
+    const subtitle = document.querySelector('#active-subtitle')
+    const playhead = document.querySelector('#playhead')
+    const currentTime = document.querySelector('#current-time')
+    const durationTime = document.querySelector('#duration-time')
+    const validation = document.querySelector('#validation')
+    const validationText = document.querySelector('#validation-text')
+
+    let activeEffectId = GSAPIFY_EFFECTS[0].id
+    let timeline = null
+    let seeking = false
+
+    const formatTime = seconds => {
+      const whole = Math.max(0, seconds)
+      const sec = Math.floor(whole)
+      const frames = Math.floor((whole - sec) * 30)
+      return `${String(sec).padStart(2, '0')}:${String(frames).padStart(2, '0')}`
+    }
+
+    const targetFor = effect => {
+      if (effect.scope === 'stage') return '$stage'
+      if (effect.scope === 'background') return '$background'
+      if (effect.categoryId === 'text-typography') return 'headline'
+      if (effect.categoryId === 'image-gallery') return 'card-a'
+      if (effect.categoryId === 'hover-interactions') return 'button'
+      if (effect.categoryId === 'svg-morphing' || effect.categoryId === 'line-drawing') return 'diagram'
+      if (effect.categoryId === 'counters-data') return 'counter'
+      return 'card-a'
+    }
+
+    const resetStage = () => {
+      disposeMotionTimeline(timeline)
+      timeline = null
+      stage.innerHTML = STAGE_HTML
+      playhead.value = '0'
+    }
+
+    const playEffect = (effectId = activeEffectId) => {
+      const effect = GSAPIFY_EFFECTS_BY_ID.get(effectId)
+      if (!effect) return
+      activeEffectId = effect.id
+      resetStage()
+
+      title.textContent = effect.label
+      subtitle.textContent = `${effect.category} · ${effect.plugins.join(', ')} · ${effect.id}`
+      durationTime.textContent = formatTime(effect.duration)
+
+      timeline = createMotionTimeline(stage, {
+        version: 1,
+        autoplay: false,
+        duration: effect.duration,
+        reducedMotion: 'fade',
+        steps: [{
+          method: 'effect',
+          effectId: effect.id,
+          elIds: [targetFor(effect)],
+          position: 0,
+          vars: {
+            duration: effect.duration,
+            ease: 'power3.out',
+          },
+        }],
+      }, {
+        paused: true,
+        onUpdate: () => {
+          if (!timeline || seeking) return
+          const duration = Math.max(.001, timeline.duration())
+          playhead.value = String(timeline.time() / duration)
+          currentTime.textContent = formatTime(timeline.time())
+        },
+      })
+      timeline.play(0)
+      renderEffects()
+    }
+
+    const renderEffects = () => {
+      const query = search.value.trim().toLowerCase()
+      const categoryId = categoryFilter.value
+      list.innerHTML = ''
+
+      GSAPIFY_EFFECTS.forEach((effect, index) => {
+        const haystack = `${effect.id} ${effect.label} ${effect.category} ${effect.plugins.join(' ')}`.toLowerCase()
+        if (query && !haystack.includes(query)) return
+        if (categoryId && effect.categoryId !== categoryId) return
+
+        const button = document.createElement('button')
+        button.className = `effect-button${effect.id === activeEffectId ? ' active' : ''}`
+        button.innerHTML = `
+          <span class="effect-num">${String(index + 1).padStart(3, '0')}</span>
+          <span class="effect-copy">
+            <strong>${effect.label}</strong>
+            <small>${effect.plugins.join(' · ')}</small>
+          </span>
+        `
+        button.addEventListener('click', () => playEffect(effect.id))
+        list.appendChild(button)
+      })
+    }
+
+    const createSmokeRoot = () => {
+      const root = document.createElement('div')
+      root.className = 'screen-slide'
+      root.innerHTML = `
+        <div class="background"></div>
+        <div class="motion-layer">
+          <div class="screen-element" data-element-id="target">
+            <div class="visual">
+              <div class="text">PPTist Motion 100</div>
+              <svg width="180" height="100" viewBox="0 0 180 100">
+                <path d="M10,50 C45,5 135,95 170,50" fill="none" stroke="currentColor"/>
+                <path d="M10,80 C55,20 125,20 170,80" fill="none" stroke="currentColor"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      `
+      Object.assign(root.style, {
+        position: 'fixed',
+        left: '-3000px',
+        top: '0',
+        width: '500px',
+        height: '300px',
+      })
+      document.body.appendChild(root)
+      return root
+    }
+
+    const runAll = async () => {
+      const failures = []
+      validation.className = 'validation running'
+      validationText.textContent = '正在验证 0 / 100'
+
+      for (let index = 0; index < GSAPIFY_EFFECTS.length; index++) {
+        const effect = GSAPIFY_EFFECTS[index]
+        const root = createSmokeRoot()
+        let testTimeline = null
+        try {
+          testTimeline = createMotionTimeline(root, {
+            version: 1,
+            duration: .08,
+            autoplay: false,
+            steps: [{
+              method: 'effect',
+              effectId: effect.id,
+              elIds: ['target'],
+              position: 0,
+              vars: { duration: .05, ease: 'power1.out' },
+            }],
+          })
+          testTimeline.totalProgress(1, false)
+        }
+        catch (error) {
+          failures.push({
+            id: effect.id,
+            message: error instanceof Error ? error.message : String(error),
+          })
+        }
+        finally {
+          disposeMotionTimeline(testTimeline)
+          root.remove()
+        }
+
+        if (index % 5 === 4) {
+          validationText.textContent = `正在验证 ${index + 1} / 100`
+          await new Promise(resolve => requestAnimationFrame(resolve))
+        }
+      }
+
+      validation.className = failures.length ? 'validation fail' : 'validation pass'
+      validationText.textContent = failures.length
+        ? `失败 ${failures.length} / 100：${failures.map(item => item.id).join(', ')}`
+        : '验证通过：100 / 100，失败 0'
+      console.table(failures)
+    }
+
+    categoryFilter.innerHTML = [
+      '<option value="">全部 14 类</option>',
+      ...GSAPIFY_EFFECT_CATEGORIES.map(category =>
+        `<option value="${category.id}">${category.label} (${category.effects.length})</option>`
+      ),
+    ].join('')
+
+    search.addEventListener('input', renderEffects)
+    categoryFilter.addEventListener('change', renderEffects)
+    document.querySelector('#play').addEventListener('click', () => timeline?.play())
+    document.querySelector('#pause').addEventListener('click', () => timeline?.pause())
+    document.querySelector('#restart').addEventListener('click', () => timeline?.restart())
+    document.querySelector('#run-all').addEventListener('click', runAll)
+    playhead.addEventListener('input', () => {
+      if (!timeline) return
+      seeking = true
+      timeline.pause().progress(Number(playhead.value), false)
+      currentTime.textContent = formatTime(timeline.time())
+      seeking = false
+    })
+
+    renderEffects()
+    playEffect(activeEffectId)
+  </script>
+</body>
+</html>

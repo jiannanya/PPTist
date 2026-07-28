@@ -695,7 +695,7 @@ export interface PPTAnimation {
   trigger: AnimationTrigger
 }
 
-export type SlideMotionMethod = 'set' | 'from' | 'to' | 'fromTo'
+export type SlideMotionMethod = 'set' | 'from' | 'to' | 'fromTo' | 'effect'
 export type SlideMotionPosition = number | string
 
 export interface SlideMotionStagger {
@@ -704,7 +704,12 @@ export interface SlideMotionStagger {
   from?: number | 'start' | 'center' | 'end' | 'edges' | 'random'
 }
 
-export type SlideMotionValue = number | string | boolean | SlideMotionStagger
+export type SlideMotionPrimitive = number | string | boolean | null
+export type SlideMotionValue =
+  | SlideMotionPrimitive
+  | SlideMotionStagger
+  | SlideMotionValue[]
+  | { [key: string]: SlideMotionValue }
 export type SlideMotionVars = Record<string, SlideMotionValue>
 
 /**
@@ -716,6 +721,11 @@ export interface SlideMotionTween {
   method: SlideMotionMethod
   elIds: string[]
   position?: SlideMotionPosition
+  /**
+   * A registered, trusted effect ID. `effect` steps never evaluate source code
+   * from imported decks; the player resolves the ID through its local registry.
+   */
+  effectId?: string
   vars?: SlideMotionVars
   fromVars?: SlideMotionVars
   toVars?: SlideMotionVars

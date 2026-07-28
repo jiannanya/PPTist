@@ -1,5 +1,6 @@
 import { gsap } from 'gsap'
 import type { SlideMotion, SlideMotionPosition, SlideMotionTween, SlideMotionVars } from '@/types/slides'
+import { appendGsapifyEffect } from '@/utils/gsapifyEffectRuntime'
 
 const ALLOWED_VARS = new Set([
   'duration',
@@ -25,14 +26,36 @@ const ALLOWED_VARS = new Set([
   'filter',
   'clipPath',
   'backgroundColor',
+  'backgroundImage',
+  'backgroundPosition',
+  'backgroundSize',
   'color',
+  'borderColor',
+  'borderRadius',
+  'boxShadow',
+  'textShadow',
   'letterSpacing',
+  'stroke',
+  'strokeWidth',
+  'strokeDasharray',
+  'strokeDashoffset',
+  'fill',
+  'perspective',
+  'transformStyle',
+  'transformBox',
+  'svgOrigin',
+  'force3D',
+  'keyframes',
+  'snap',
+  'clearProps',
   'repeat',
   'yoyo',
   'stagger',
   'overwrite',
   'immediateRender',
 ])
+
+const MOTION_CLEANUPS = new WeakMap<gsap.core.Timeline, Set<() => void>>()
 
 export interface MotionStepTiming {
   index: number
@@ -139,6 +162,7 @@ export const createMotionTimeline = (
   motion: SlideMotion,
   options: CreateMotionTimelineOptions = {}
 ) => {
+  const cleanups = new Set<() => void>()
   const timeline = gsap.timeline({
     paused: options.paused ?? true,
     repeat: motion.repeat ?? 0,
@@ -153,7 +177,17 @@ export const createMotionTimeline = (
     if (!targets.length) continue
 
     const position = normalizeMotionPosition(step.position)
-    if (step.method === 'set') {
+    if (step.method === 'effect') {
+      appendGsapifyEffect({
+        root,
+        timeline,
+        step,
+        targets,
+        position,
+        addCleanup: cleanup => cleanups.add(cleanup),
+      })
+    }
+    else if (step.method === 'set') {
       timeline.set(targets, sanitizeMotionVars(step.vars), position)
     }
     else if (step.method === 'from') {
@@ -175,5 +209,17 @@ export const createMotionTimeline = (
   const sceneDuration = getMotionDuration(motion)
   if (sceneDuration > timeline.duration()) timeline.call(() => {}, [], sceneDuration)
   timeline.timeScale(motion.timeScale ?? 1)
+  MOTION_CLEANUPS.set(timeline, cleanups)
   return timeline
+}
+
+export const disposeMotionTimeline = (timeline?: gsap.core.Timeline | null) => {
+  if (!timeline) return
+  const cleanups = MOTION_CLEANUPS.get(timeline)
+  if (cleanups) {
+    for (const cleanup of cleanups) cleanup()
+    cleanups.clear()
+    MOTION_CLEANUPS.delete(timeline)
+  }
+  timeline.kill()
 }
