@@ -204,6 +204,27 @@
           </button>
         </div>
 
+        <div class="camera-preset-picker">
+          <span>运镜 64</span>
+          <select v-model="selectedCameraPresetId">
+            <optgroup
+              v-for="category in CAMERA_MOTION_PRESET_CATEGORIES"
+              :key="category.id"
+              :label="`${category.label} · ${category.presets.length}`"
+            >
+              <option
+                v-for="preset in category.presets"
+                :key="preset.id"
+                :value="preset.id"
+              >{{ preset.label }} · {{ preset.labelEn }}</option>
+            </optgroup>
+          </select>
+          <button
+            :title="CAMERA_MOTION_PRESETS_BY_ID.get(selectedCameraPresetId)?.description"
+            @click="addCameraMotionPreset"
+          >添加运镜</button>
+        </div>
+
         <div class="gsapify-picker">
           <span>GSAPify 100</span>
           <select v-model="selectedGsapifyEffectId">
@@ -320,6 +341,12 @@ import {
   GSAPIFY_EFFECTS,
   GSAPIFY_EFFECTS_BY_ID,
 } from '@/data/gsapifyEffects'
+import {
+  CAMERA_MOTION_PRESET_CATEGORIES,
+  CAMERA_MOTION_PRESETS,
+  CAMERA_MOTION_PRESETS_BY_ID,
+  type CameraMotionPresetTarget,
+} from '@/data/cameraMotionPresets'
 import {
   calculateMotionStepTimings,
   createMotionTimeline,
@@ -473,6 +500,7 @@ const pixelsPerSecond = ref(90)
 const selectedTrackId = ref('$stage')
 const selectedStepIndex = ref(-1)
 const selectedGsapifyEffectId = ref(GSAPIFY_EFFECTS[0].id)
+const selectedCameraPresetId = ref(CAMERA_MOTION_PRESETS[0].id)
 const dragPreview = ref<{ index: number; start: number; duration: number } | null>(null)
 
 let timeline: gsap.core.Timeline | null = null
@@ -729,6 +757,36 @@ const addPresetFrame = (preset: MotionPreset) => {
   selectedStepIndex.value = nextMotion.steps.length - 1
   selectedTrackId.value = target
   commitMotion(nextMotion, `添加预设：${preset.label}`)
+}
+
+const resolveCameraPresetTarget = (target: CameraMotionPresetTarget) => {
+  if (target !== '$selected') return target
+  if (!selectedTrackId.value.startsWith('$')) return selectedTrackId.value
+  return tracks.value.find(track => !track.id.startsWith('$'))?.id || '$stage'
+}
+
+const addCameraMotionPreset = () => {
+  const preset = CAMERA_MOTION_PRESETS_BY_ID.get(selectedCameraPresetId.value)
+  if (!preset) return
+
+  const nextMotion = ensureMotion()
+  const baseTime = snapTime(currentTime.value)
+  for (const frame of preset.frames) {
+    nextMotion.steps.push({
+      ...JSON.parse(JSON.stringify(frame.step)),
+      id: nanoid(10),
+      elIds: [resolveCameraPresetTarget(frame.target)],
+      position: snapTime(baseTime + frame.offset),
+    })
+  }
+
+  nextMotion.duration = Math.max(
+    nextMotion.duration || 0,
+    baseTime + preset.duration
+  )
+  selectedStepIndex.value = nextMotion.steps.length - 1
+  selectedTrackId.value = '$stage'
+  commitMotion(nextMotion, `添加运镜：${preset.label}`)
 }
 
 const addGsapifyEffectFrame = () => {
@@ -1584,6 +1642,7 @@ button {
   }
 }
 
+.camera-preset-picker,
 .gsapify-picker {
   width: 250px;
   flex-shrink: 0;
@@ -1617,6 +1676,26 @@ button {
 
     &:hover {
       background: #805eea;
+    }
+  }
+}
+
+.camera-preset-picker {
+  width: 300px;
+
+  > span {
+    color: #f0abfc;
+  }
+
+  select {
+    border-color: #6d4877;
+  }
+
+  button {
+    background: linear-gradient(135deg, #7c3aed, #db2777);
+
+    &:hover {
+      background: linear-gradient(135deg, #8b5cf6, #ec4899);
     }
   }
 }

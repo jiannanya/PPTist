@@ -1,0 +1,997 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PPTist · 64 Camera Motion Presets</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08090d;
+      --panel: rgba(20, 21, 30, .92);
+      --panel-2: #1b1d28;
+      --line: rgba(255, 255, 255, .1);
+      --muted: #989dad;
+      --text: #f8f7ff;
+      --violet: #9f7aea;
+      --pink: #fb5f7e;
+      --gold: #f5bd55;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-width: 980px;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 74% 22%, rgba(109, 40, 217, .2), transparent 30%),
+        radial-gradient(circle at 12% 80%, rgba(219, 39, 119, .13), transparent 32%),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .app {
+      height: 100%;
+      display: grid;
+      grid-template-columns: 390px minmax(540px, 1fr);
+    }
+
+    .catalog {
+      min-height: 0;
+      padding: 24px 20px 18px;
+      display: flex;
+      flex-direction: column;
+      background: rgba(11, 12, 18, .92);
+      border-right: 1px solid var(--line);
+      backdrop-filter: blur(18px);
+    }
+
+    .eyebrow {
+      margin-bottom: 10px;
+      color: #c4b5fd;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .18em;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 27px;
+      line-height: 1.1;
+      letter-spacing: -.04em;
+    }
+
+    .lede {
+      margin: 10px 0 16px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+      margin-bottom: 14px;
+    }
+
+    .stat {
+      padding: 9px 8px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: rgba(255, 255, 255, .035);
+    }
+
+    .stat strong,
+    .stat span {
+      display: block;
+    }
+
+    .stat strong {
+      font-size: 17px;
+    }
+
+    .stat span {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 9px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 1fr 116px;
+      gap: 7px;
+      margin-bottom: 8px;
+    }
+
+    .filters input,
+    .filters select,
+    .target-select {
+      width: 100%;
+      height: 35px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      outline: none;
+      background: #151721;
+      color: var(--text);
+    }
+
+    .filters input:focus,
+    .filters select:focus,
+    .target-select:focus {
+      border-color: rgba(159, 122, 234, .7);
+    }
+
+    .preset-list {
+      min-height: 0;
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 5px;
+      scrollbar-width: thin;
+      scrollbar-color: #4b4762 transparent;
+    }
+
+    .category-heading {
+      padding: 13px 3px 7px;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      background: linear-gradient(#0c0d13 72%, transparent);
+      color: #d7d8e3;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .preset-button {
+      width: 100%;
+      min-height: 62px;
+      margin-bottom: 6px;
+      padding: 10px 10px 9px;
+      display: grid;
+      grid-template-columns: 7px 1fr auto;
+      gap: 10px;
+      align-items: start;
+      text-align: left;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .035);
+      transition: .18s ease;
+    }
+
+    .preset-button:hover {
+      background: rgba(255, 255, 255, .07);
+      transform: translateX(2px);
+    }
+
+    .preset-button.is-active {
+      border-color: color-mix(in srgb, var(--accent) 62%, transparent);
+      background: color-mix(in srgb, var(--accent) 14%, #171822);
+      box-shadow: inset 0 0 22px color-mix(in srgb, var(--accent) 8%, transparent);
+    }
+
+    .preset-bar {
+      width: 7px;
+      height: 100%;
+      min-height: 40px;
+      border-radius: 6px;
+      background: var(--accent);
+    }
+
+    .preset-copy {
+      min-width: 0;
+    }
+
+    .preset-copy strong,
+    .preset-copy span {
+      display: block;
+    }
+
+    .preset-copy strong {
+      font-size: 12px;
+    }
+
+    .preset-copy span {
+      margin-top: 4px;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 10px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .preset-meta {
+      color: #c4c7d5;
+      font: 10px/1.2 Consolas, monospace;
+      white-space: nowrap;
+    }
+
+    .empty {
+      padding: 30px 12px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 12px;
+    }
+
+    .lab {
+      min-width: 0;
+      min-height: 0;
+      padding: 20px 24px;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      gap: 14px;
+    }
+
+    .lab-toolbar,
+    .transport {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .lab-toolbar {
+      justify-content: space-between;
+    }
+
+    .active-meta {
+      min-width: 0;
+    }
+
+    .active-meta span,
+    .active-meta strong {
+      display: block;
+    }
+
+    .active-meta span {
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .active-meta strong {
+      margin-top: 4px;
+      overflow: hidden;
+      font-size: 17px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .transport button {
+      height: 34px;
+      padding: 0 12px;
+      border-radius: 8px;
+      background: #222431;
+      font-size: 11px;
+    }
+
+    .transport button:hover {
+      background: #303344;
+    }
+
+    .transport .primary {
+      min-width: 74px;
+      background: linear-gradient(135deg, #7c3aed, #db2777);
+    }
+
+    .transport .primary:hover {
+      background: linear-gradient(135deg, #8b5cf6, #ec4899);
+    }
+
+    .target-wrap {
+      min-width: 150px;
+    }
+
+    .target-wrap span {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-size: 9px;
+      letter-spacing: .08em;
+    }
+
+    .target-select {
+      height: 34px;
+      font-size: 11px;
+    }
+
+    .stage-shell {
+      min-height: 0;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background:
+        linear-gradient(45deg, rgba(255, 255, 255, .025) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(255, 255, 255, .025) 25%, transparent 25%),
+        #0d0f16;
+      background-size: 22px 22px;
+      box-shadow: inset 0 0 80px rgba(0, 0, 0, .42);
+    }
+
+    .screen-slide {
+      width: min(44vh, 430px);
+      aspect-ratio: 1 / 1.25;
+      position: relative;
+      overflow: hidden;
+      border-radius: 3px;
+      background: #ece7dd;
+      color: #211f25;
+      box-shadow: 0 28px 70px rgba(0, 0, 0, .52);
+      isolation: isolate;
+    }
+
+    .background,
+    .motion-layer {
+      position: absolute;
+      inset: 0;
+      transform-origin: 50% 50%;
+      will-change: transform, filter, opacity;
+    }
+
+    .background {
+      z-index: 0;
+      background:
+        radial-gradient(circle at 72% 16%, rgba(255, 255, 255, .88), transparent 21%),
+        linear-gradient(155deg, #f5f0e7 0 50%, #e3dcd0 50% 100%);
+    }
+
+    .background::before,
+    .background::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(1px);
+    }
+
+    .background::before {
+      width: 72%;
+      height: 34%;
+      right: -26%;
+      top: -5%;
+      background: rgba(113, 67, 184, .19);
+      transform: rotate(-19deg);
+    }
+
+    .background::after {
+      width: 58%;
+      height: 30%;
+      left: -25%;
+      bottom: 3%;
+      background: rgba(219, 72, 111, .12);
+      transform: rotate(24deg);
+    }
+
+    .motion-layer {
+      z-index: 2;
+    }
+
+    .kicker {
+      position: absolute;
+      left: 8%;
+      top: 6%;
+      font-size: 2.2%;
+      font-weight: 900;
+      letter-spacing: .18em;
+    }
+
+    .hero-title {
+      width: 78%;
+      position: absolute;
+      left: 8%;
+      top: 12%;
+      font-size: 7.6%;
+      font-weight: 950;
+      line-height: .95;
+      letter-spacing: -.055em;
+    }
+
+    .hero-title em {
+      color: #7345bb;
+      font-style: normal;
+    }
+
+    .rule {
+      width: 34%;
+      height: 1.1%;
+      position: absolute;
+      left: 8%;
+      top: 31%;
+      border-radius: 999px;
+      background: #f0ac45;
+    }
+
+    .screen-element {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .screen-element > * {
+      will-change: transform, filter, opacity;
+      pointer-events: auto;
+    }
+
+    .focus-visual {
+      width: 70%;
+      height: 28%;
+      position: absolute;
+      left: 15%;
+      top: 37%;
+      padding: 6%;
+      overflow: hidden;
+      border: 2px solid #26242a;
+      border-radius: 3%;
+      background: #26242a;
+      color: #fff;
+      box-shadow: 0 14px 0 rgba(38, 36, 42, .18);
+      transform-origin: 50% 50%;
+    }
+
+    .focus-visual::after {
+      content: "";
+      width: 48%;
+      aspect-ratio: 1;
+      position: absolute;
+      right: -18%;
+      bottom: -34%;
+      border: 2px solid rgba(255, 255, 255, .2);
+      border-radius: 50%;
+    }
+
+    .focus-visual span {
+      display: block;
+      color: #f0ac45;
+      font-size: 5%;
+      font-weight: 900;
+      letter-spacing: .13em;
+    }
+
+    .focus-visual strong {
+      display: block;
+      margin-top: 4%;
+      font-size: 15%;
+      line-height: 1.05;
+      letter-spacing: -.04em;
+    }
+
+    .focus-visual small {
+      display: block;
+      margin-top: 6%;
+      color: rgba(255, 255, 255, .64);
+      font-size: 5%;
+      line-height: 1.5;
+    }
+
+    .formula-visual {
+      width: 42%;
+      position: absolute;
+      left: 8%;
+      top: 72%;
+      padding: 3.2% 4%;
+      border: 2px solid #28262b;
+      background: #f6cf78;
+      font: 900 8%/1 Consolas, monospace;
+      transform: rotate(-2deg);
+      box-shadow: 8px 8px 0 rgba(40, 38, 43, .15);
+    }
+
+    .portrait-visual {
+      width: 28%;
+      aspect-ratio: 1;
+      position: absolute;
+      right: 8%;
+      top: 70%;
+      display: grid;
+      place-items: center;
+      border: 2px solid #28262b;
+      border-radius: 50%;
+      background: #e06a82;
+      font-size: 15%;
+      box-shadow: 7px 7px 0 rgba(40, 38, 43, .15);
+    }
+
+    .badge-visual {
+      position: absolute;
+      right: 7%;
+      top: 5%;
+      padding: 2.2% 3%;
+      border: 2px solid #28262b;
+      border-radius: 999px;
+      background: #fff;
+      font-size: 3%;
+      font-weight: 900;
+      transform: rotate(4deg);
+    }
+
+    .footer-note {
+      position: absolute;
+      left: 8%;
+      bottom: 4.2%;
+      color: rgba(33, 31, 37, .58);
+      font-size: 2.6%;
+      font-weight: 700;
+      letter-spacing: .08em;
+    }
+
+    .detail-panel {
+      min-width: 0;
+      padding: 12px 14px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(18, 20, 28, .78);
+    }
+
+    .detail-copy {
+      min-width: 0;
+    }
+
+    .detail-copy strong,
+    .detail-copy span {
+      display: block;
+    }
+
+    .detail-copy strong {
+      overflow: hidden;
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .detail-copy span {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
+    .detail-metrics {
+      display: flex;
+      gap: 12px;
+      color: #cdd0dc;
+      font: 10px/1 Consolas, monospace;
+      white-space: nowrap;
+    }
+
+    .timeline-bar {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 54px 1fr 54px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .timeline-bar span {
+      color: var(--muted);
+      font: 10px/1 Consolas, monospace;
+    }
+
+    .timeline-bar span:last-child {
+      text-align: right;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #a855f7;
+    }
+
+    .validation {
+      position: absolute;
+      right: 18px;
+      bottom: 18px;
+      padding: 8px 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(11, 12, 18, .88);
+      color: #b9bdca;
+      font: 10px/1.2 Consolas, monospace;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: .2s ease;
+      pointer-events: none;
+    }
+
+    .validation.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-height: 760px) {
+      .catalog {
+        padding-top: 16px;
+      }
+
+      h1 {
+        font-size: 23px;
+      }
+
+      .lede {
+        margin: 7px 0 10px;
+      }
+
+      .screen-slide {
+        width: min(40vh, 360px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside class="catalog">
+      <div class="eyebrow">PPTIST MOTION LAB</div>
+      <h1>64 种运镜<br>一页就是一个镜头</h1>
+      <p class="lede">与 PPTist 时间轴共用同一注册表和播放器。每个预设生成可编辑、可撤销的声明式 GSAP 帧。</p>
+
+      <div class="stats">
+        <div class="stat"><strong id="total-count">64</strong><span>全部预设</span></div>
+        <div class="stat"><strong id="cinematic-count">32</strong><span>电影感</span></div>
+        <div class="stat"><strong id="social-count">32</strong><span>自媒体感</span></div>
+      </div>
+
+      <div class="filters">
+        <input id="search" type="search" placeholder="搜索运镜、标签…">
+        <select id="category-filter">
+          <option value="all">全部类型</option>
+          <option value="cinematic">电影感</option>
+          <option value="social">自媒体感</option>
+        </select>
+      </div>
+
+      <div id="preset-list" class="preset-list"></div>
+    </aside>
+
+    <section class="lab">
+      <header class="lab-toolbar">
+        <div class="active-meta">
+          <span id="active-category">CINEMATIC CAMERA</span>
+          <strong id="active-title">缓慢推镜 · Slow Push In</strong>
+        </div>
+
+        <div class="transport">
+          <label class="target-wrap">
+            <span>$selected 聚焦对象</span>
+            <select id="target-select" class="target-select">
+              <option value="focus-card">核心卡片</option>
+              <option value="formula">公式标签</option>
+              <option value="portrait">人物图标</option>
+              <option value="badge">右上角标签</option>
+            </select>
+          </label>
+          <button id="restart">↺ 重播</button>
+          <button id="pause">Ⅱ 暂停</button>
+          <button id="validate">验证 64 个</button>
+          <button id="play" class="primary">▶ 播放</button>
+        </div>
+      </header>
+
+      <div class="stage-shell">
+        <div id="demo-stage" class="screen-slide">
+          <div class="background"></div>
+          <div class="motion-layer">
+            <div class="kicker">REGISTERED CAMERA RUNTIME</div>
+            <div class="hero-title">Move the <em>camera</em>,<br>not just objects.</div>
+            <div class="rule"></div>
+
+            <div class="screen-element" data-element-id="focus-card">
+              <article class="focus-visual">
+                <span>ONE SLIDE = ONE SHOT</span>
+                <strong>Cinematic<br>story beats.</strong>
+                <small>Camera · Background · Elements<br>All editable on one timeline.</small>
+              </article>
+            </div>
+
+            <div class="screen-element" data-element-id="formula">
+              <div class="formula-visual">17.5 × 23</div>
+            </div>
+
+            <div class="screen-element" data-element-id="portrait">
+              <div class="portrait-visual">AI</div>
+            </div>
+
+            <div class="screen-element" data-element-id="badge">
+              <div class="badge-visual">64 PRESETS</div>
+            </div>
+
+            <div class="footer-note">CORE GSAP · SERIALIZABLE FRAMES · PPTIST PLAYER</div>
+          </div>
+        </div>
+        <div id="validation" class="validation"></div>
+      </div>
+
+      <footer class="detail-panel">
+        <div class="detail-copy">
+          <strong id="active-tags">推镜 · 开场 · 叙事</strong>
+          <span id="active-description">克制地靠近叙事核心，适合开场、观点建立与结论。</span>
+        </div>
+        <div class="detail-metrics">
+          <span id="active-duration">4.8s</span>
+          <span id="active-frames">1 frames</span>
+          <span id="active-intensity">subtle</span>
+        </div>
+        <div class="timeline-bar">
+          <span id="current-time">00:00</span>
+          <input id="playhead" type="range" min="0" max="4.8" step="0.01" value="0">
+          <span id="duration-time">04:80</span>
+        </div>
+      </footer>
+    </section>
+  </main>
+
+  <script type="module">
+    import { gsap } from 'gsap'
+    import {
+      CAMERA_MOTION_PRESETS,
+      CAMERA_MOTION_PRESETS_BY_ID,
+      CAMERA_MOTION_PRESET_CATEGORIES,
+    } from '/src/data/cameraMotionPresets.ts'
+    import {
+      createMotionTimeline,
+      disposeMotionTimeline,
+    } from '/src/utils/gsapMotion.ts'
+
+    const stage = document.querySelector('#demo-stage')
+    const presetList = document.querySelector('#preset-list')
+    const search = document.querySelector('#search')
+    const categoryFilter = document.querySelector('#category-filter')
+    const targetSelect = document.querySelector('#target-select')
+    const playhead = document.querySelector('#playhead')
+    const validation = document.querySelector('#validation')
+
+    let activePresetId = CAMERA_MOTION_PRESETS[0].id
+    let timeline = null
+    let isPlaying = false
+
+    const formatTime = value => {
+      const seconds = Math.max(0, Number(value) || 0)
+      const whole = Math.floor(seconds)
+      const frames = Math.floor((seconds - whole) * 30)
+      return `${String(whole).padStart(2, '0')}:${String(frames).padStart(2, '0')}`
+    }
+
+    const clearStage = () => {
+      gsap.set(
+        stage.querySelectorAll('.motion-layer, .background, .screen-element > *'),
+        { clearProps: 'transform,filter,opacity,visibility' }
+      )
+    }
+
+    const buildMotion = preset => ({
+      version: 1,
+      autoplay: false,
+      duration: preset.duration,
+      fps: 30,
+      reducedMotion: 'fade',
+      defaults: { duration: 0.6, ease: 'power3.out', overwrite: 'auto' },
+      steps: preset.frames.map((frame, index) => ({
+        ...structuredClone(frame.step),
+        id: `demo-${preset.id}-${index}`,
+        elIds: [
+          frame.target === '$selected'
+            ? targetSelect.value
+            : frame.target
+        ],
+        position: frame.offset,
+      })),
+    })
+
+    const syncTransport = () => {
+      if (!timeline) return
+      const time = timeline.time()
+      const duration = timeline.duration()
+      playhead.max = String(duration)
+      playhead.value = String(time)
+      document.querySelector('#current-time').textContent = formatTime(time)
+      document.querySelector('#duration-time').textContent = formatTime(duration)
+    }
+
+    const createPresetTimeline = preset => {
+      disposeMotionTimeline(timeline)
+      timeline = null
+      clearStage()
+      timeline = createMotionTimeline(stage, buildMotion(preset), {
+        paused: true,
+        onUpdate: syncTransport,
+        onComplete: () => {
+          isPlaying = false
+          document.querySelector('#play').textContent = '▶ 播放'
+        },
+      })
+      timeline.time(0, false)
+      syncTransport()
+      return timeline
+    }
+
+    const playPreset = (presetId, autoplay = true) => {
+      const preset = CAMERA_MOTION_PRESETS_BY_ID.get(presetId)
+      if (!preset) return
+      activePresetId = preset.id
+
+      document.querySelector('#active-category').textContent =
+        preset.categoryId === 'cinematic' ? 'CINEMATIC CAMERA' : 'SOCIAL VIDEO CAMERA'
+      document.querySelector('#active-title').textContent = `${preset.label} · ${preset.labelEn}`
+      document.querySelector('#active-tags').textContent = preset.tags.join(' · ')
+      document.querySelector('#active-description').textContent = preset.description
+      document.querySelector('#active-duration').textContent = `${preset.duration.toFixed(2)}s`
+      document.querySelector('#active-frames').textContent = `${preset.frames.length} frames`
+      document.querySelector('#active-intensity').textContent = preset.intensity
+
+      document.querySelectorAll('.preset-button').forEach(button => {
+        button.classList.toggle('is-active', button.dataset.presetId === preset.id)
+      })
+
+      createPresetTimeline(preset)
+      if (autoplay) {
+        timeline.play()
+        isPlaying = true
+        document.querySelector('#play').textContent = 'Ⅱ 暂停'
+      }
+    }
+
+    const renderCatalog = () => {
+      const query = search.value.trim().toLowerCase()
+      const category = categoryFilter.value
+      presetList.innerHTML = ''
+      let rendered = 0
+
+      for (const group of CAMERA_MOTION_PRESET_CATEGORIES) {
+        if (category !== 'all' && category !== group.id) continue
+        const matches = group.presets.filter(preset => {
+          const haystack = [
+            preset.label,
+            preset.labelEn,
+            preset.description,
+            ...preset.tags,
+          ].join(' ').toLowerCase()
+          return !query || haystack.includes(query)
+        })
+        if (!matches.length) continue
+
+        const heading = document.createElement('div')
+        heading.className = 'category-heading'
+        heading.innerHTML = `<span>${group.label}</span><span>${matches.length}</span>`
+        presetList.append(heading)
+
+        for (const preset of matches) {
+          rendered += 1
+          const button = document.createElement('button')
+          button.className = 'preset-button'
+          button.dataset.presetId = preset.id
+          button.style.setProperty('--accent', preset.color)
+          button.innerHTML = `
+            <span class="preset-bar"></span>
+            <span class="preset-copy">
+              <strong>${preset.label}</strong>
+              <span>${preset.labelEn} · ${preset.description}</span>
+            </span>
+            <span class="preset-meta">${preset.duration.toFixed(1)}s<br>${preset.frames.length}F</span>
+          `
+          button.addEventListener('click', () => playPreset(preset.id))
+          presetList.append(button)
+        }
+      }
+
+      if (!rendered) {
+        const empty = document.createElement('div')
+        empty.className = 'empty'
+        empty.textContent = '没有匹配的运镜预设'
+        presetList.append(empty)
+      }
+
+      document.querySelectorAll('.preset-button').forEach(button => {
+        button.classList.toggle('is-active', button.dataset.presetId === activePresetId)
+      })
+    }
+
+    const validateAll = async () => {
+      const active = activePresetId
+      let passed = 0
+      const failures = []
+      validation.classList.add('is-visible')
+      validation.textContent = '正在验证 64 个运镜…'
+
+      disposeMotionTimeline(timeline)
+      timeline = null
+      for (const preset of CAMERA_MOTION_PRESETS) {
+        try {
+          clearStage()
+          const candidate = createMotionTimeline(stage, buildMotion(preset), { paused: true })
+          candidate.progress(1, false)
+          disposeMotionTimeline(candidate)
+          passed += 1
+        }
+        catch (error) {
+          failures.push(`${preset.id}: ${error instanceof Error ? error.message : String(error)}`)
+        }
+      }
+
+      clearStage()
+      playPreset(active, false)
+      validation.textContent = failures.length
+        ? `验证 ${passed} / 64，失败 ${failures.length}`
+        : '验证通过：64 / 64，失败 0'
+      if (failures.length) console.error(failures)
+      setTimeout(() => validation.classList.remove('is-visible'), 3800)
+    }
+
+    document.querySelector('#total-count').textContent = String(CAMERA_MOTION_PRESETS.length)
+    document.querySelector('#cinematic-count').textContent = String(
+      CAMERA_MOTION_PRESETS.filter(preset => preset.categoryId === 'cinematic').length
+    )
+    document.querySelector('#social-count').textContent = String(
+      CAMERA_MOTION_PRESETS.filter(preset => preset.categoryId === 'social').length
+    )
+
+    search.addEventListener('input', renderCatalog)
+    categoryFilter.addEventListener('change', renderCatalog)
+    targetSelect.addEventListener('change', () => playPreset(activePresetId))
+    playhead.addEventListener('input', () => {
+      timeline?.pause().time(Number(playhead.value), false)
+      isPlaying = false
+      document.querySelector('#play').textContent = '▶ 播放'
+      syncTransport()
+    })
+
+    document.querySelector('#restart').addEventListener('click', () => {
+      timeline?.restart()
+      isPlaying = true
+      document.querySelector('#play').textContent = 'Ⅱ 暂停'
+    })
+    document.querySelector('#pause').addEventListener('click', () => {
+      timeline?.pause()
+      isPlaying = false
+      document.querySelector('#play').textContent = '▶ 播放'
+    })
+    document.querySelector('#play').addEventListener('click', () => {
+      if (!timeline) return
+      if (isPlaying) {
+        timeline.pause()
+        isPlaying = false
+        document.querySelector('#play').textContent = '▶ 播放'
+      }
+      else {
+        if (timeline.progress() >= .999) timeline.time(0)
+        timeline.play()
+        isPlaying = true
+        document.querySelector('#play').textContent = 'Ⅱ 暂停'
+      }
+    })
+    document.querySelector('#validate').addEventListener('click', validateAll)
+
+    renderCatalog()
+    playPreset(activePresetId)
+  </script>
+</body>
+</html>
