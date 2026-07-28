@@ -1,0 +1,120 @@
+# PPTist GSAP 动效时间轴
+
+## 为什么需要修改源码
+
+PPTist 原有的 `animations` 主要表达入场、退场、强调，以及
+`click / meantime / auto` 三种触发方式。它不适合表达 AE 式的绝对/相对时间、
+镜头运动、并行动画、景深、模糊、3D 翻转和循环动作。
+
+本实现为 `Slide` 增加可选的 `motion` 字段，并在编辑器中加入“静态设计 /
+动效时间轴”模式切换：
+
+- 一页 PPT 是一个分镜；
+- 一个分镜由镜头、背景和元素轨道组成；
+- 每个 GSAP step 是时间轴上的一个可编辑帧块；
+- 帧块可以选择、拖动、拉伸、复制和删除；
+- 预览区支持播放、暂停、回到首帧和跳到末帧；
+- 没有 `motion` 的旧文件继续使用原播放逻辑；
+- 有 `motion` 的页面由 GSAP timeline 播放，并跳过该页旧的点击动画。
+
+旧 `animations` 可以保留，便于未改造的 PPTist 版本回退显示。
+
+## 编辑器使用
+
+1. 在 PPTist 中导入 `.pptist` 文件。
+2. 点击编辑区顶部的“动效时间轴”。
+3. 在预览区点击元素，或在时间轴左侧选择镜头、背景、元素轨道。
+4. 从右侧添加“模糊上升”“高速飞入”“3D 翻转”“漂浮呼吸”等预设。
+5. 横向拖动帧块修改开始时间，拖动右边缘修改时长。
+6. 在右侧属性面板调整位移、缩放、旋转、透明度、滤镜、缓动和循环。
+7. 拖动红色播放头定位，使用播放按钮预览当前分镜。
+
+编辑操作直接写入当前幻灯片的 `motion` 数据，并进入 PPTist 的撤销/重做历史。
+
+## 数据格式
+
+```json
+{
+  "motion": {
+    "version": 1,
+    "autoplay": true,
+    "fps": 30,
+    "duration": 6.5,
+    "reducedMotion": "fade",
+    "defaults": {
+      "duration": 0.55,
+      "ease": "power3.out",
+      "overwrite": "auto"
+    },
+    "steps": [
+      {
+        "id": "motion-01-001",
+        "method": "from",
+        "elIds": ["element-id"],
+        "position": 0.4,
+        "vars": {
+          "autoAlpha": 0,
+          "y": 58,
+          "scale": 0.9,
+          "filter": "blur(12px)",
+          "ease": "back.out(1.35)",
+          "duration": 0.7
+        }
+      },
+      {
+        "id": "motion-01-002",
+        "method": "fromTo",
+        "elIds": ["$stage"],
+        "position": 0,
+        "fromVars": {
+          "scale": 1.08,
+          "x": -24
+        },
+        "vars": {
+          "scale": 1,
+          "x": 0,
+          "duration": 4,
+          "ease": "power2.out"
+        }
+      }
+    ]
+  }
+}
+```
+
+`method` 支持 `set`、`from`、`to`、`fromTo`。`position` 支持 GSAP timeline
+位置参数，例如 `0`、`+=0.2`、`<`、`<0.15`、`>-0.08`。
+
+特殊轨道：
+
+- `$stage`：镜头轨道，作用于整个分镜内容层；
+- `$background`：幻灯片背景轨道；
+- 普通元素 ID：作用于对应的 PPT 元素。
+
+为避免导入文件执行任意脚本，播放器只接受元素 ID 和特殊轨道，并过滤为白名单内
+的 GSAP 属性；不接受任意 CSS 选择器、回调函数或 JavaScript 字符串。
+
+## 播放生命周期
+
+- 当前页进入时自动创建并播放 timeline；
+- 切页、退出播放或组件卸载时调用 `gsap.context().revert()`，
+  恢复元素原始样式；
+- 返回已播放页面时从首帧重新播放；
+- `prefers-reduced-motion: reduce` 下按配置做极短淡入或直接跳过；
+- 将幻灯片追加导入已有文稿时，元素 ID 与 `motion.steps[].elIds`
+  会同步重映射。
+
+动画优先使用 `transform`、`opacity` 和必要的 `filter`，避免在逐帧过程中反复修改
+布局属性。播放器只构建当前分镜的 timeline，并在离开页面时清理。
+
+## 比例与坐标
+
+GSAP 作用于 PPTist 设计坐标中的元素外层；整个分镜随后由播放器统一等比缩放。
+因此 1000×1250（1:1.25）画布在任意窗口尺寸下都保持原比例，动画轨迹也与画布
+同步缩放，无需按屏幕尺寸重算坐标。
+
+## 当前演示文件
+
+`xppt/为什么大模型算不好数学.pptist` 共 20 个分镜，画布为 1000×1250。
+生成逻辑位于 `pptgen/build.cjs`。当前文件包含 292 个 GSAP 动作，每页都有镜头
+与背景轨道，并保留 171 个原动画作为兼容回退。

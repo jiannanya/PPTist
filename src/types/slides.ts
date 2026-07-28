@@ -695,6 +695,49 @@ export interface PPTAnimation {
   trigger: AnimationTrigger
 }
 
+export type SlideMotionMethod = 'set' | 'from' | 'to' | 'fromTo'
+export type SlideMotionPosition = number | string
+
+export interface SlideMotionStagger {
+  each?: number
+  amount?: number
+  from?: number | 'start' | 'center' | 'end' | 'edges' | 'random'
+}
+
+export type SlideMotionValue = number | string | boolean | SlideMotionStagger
+export type SlideMotionVars = Record<string, SlideMotionValue>
+
+/**
+ * A serializable GSAP tween. Targets are PPTist element IDs rather than
+ * arbitrary selectors so imported decks cannot escape the current slide.
+ */
+export interface SlideMotionTween {
+  id?: string
+  method: SlideMotionMethod
+  elIds: string[]
+  position?: SlideMotionPosition
+  vars?: SlideMotionVars
+  fromVars?: SlideMotionVars
+  toVars?: SlideMotionVars
+}
+
+/**
+ * Optional cinematic timeline used only by the presentation player.
+ * Legacy `animations` remain in the file as a fallback for older PPTist builds.
+ */
+export interface SlideMotion {
+  version: 1
+  autoplay?: boolean
+  duration?: number
+  fps?: number
+  repeat?: number
+  yoyo?: boolean
+  timeScale?: number
+  reducedMotion?: 'skip' | 'fade'
+  defaults?: SlideMotionVars
+  steps: SlideMotionTween[]
+}
+
 export type SlideBackgroundType = 'solid' | 'image' | 'gradient'
 export type SlideBackgroundImageSize = 'cover' | 'contain' | 'repeat'
 export interface SlideBackgroundImage {
@@ -772,6 +815,7 @@ export interface Slide {
   remark?: string
   background?: SlideBackground
   animations?: PPTAnimation[]
+  motion?: SlideMotion
   turningMode?: TurningMode
   sectionTag?: SectionTag
   type?: SlideType

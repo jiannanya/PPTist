@@ -90,6 +90,14 @@ export default () => {
           animation.elId = elIdMap[animation.elId]
         }
       }
+      // Keep GSAP motion targets aligned when imported slides receive new IDs.
+      if (slide.motion) {
+        for (const step of slide.motion.steps) {
+          step.elIds = step.elIds
+            .map(elId => elId.startsWith('$') ? elId : elIdMap[elId])
+            .filter((elId): elId is string => !!elId)
+        }
+      }
       return {
         ...slide,
         id: slideIdMap[slide.id],

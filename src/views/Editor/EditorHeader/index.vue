@@ -33,7 +33,10 @@
                 <span class="sub-label">（仅供测试）</span>
               </FileInput>
               <FileInput class="import-block" accept=".pptist" @change="files => {
-                importSpecificFile(files)
+                // A .pptist file is a complete editable project: open it with its
+                // own title, theme and canvas ratio instead of appending it to the
+                // currently open document.
+                importSpecificFile(files, true)
                 mainMenuVisible = false
               }">
                 <span class="icon"><i-custom:file-pptist /></span>

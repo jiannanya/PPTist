@@ -13,6 +13,7 @@
           'next': index === slideIndex + 1,
         }
       ]"
+      :data-slide-id="slide.id"
       v-for="(slide, index) in slidesWithTurningMode" 
       :key="slide.id"
     >
@@ -26,6 +27,7 @@
       >
         <ScreenSlide 
           :slide="slide" 
+          :active="index === slideIndex"
           :scale="scale"
           :animationIndex="animationIndex"
           :turnSlideToId="turnSlideToId"

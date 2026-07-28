@@ -3,16 +3,35 @@
     <EditorHeader class="layout-header" />
     <div class="layout-content">
       <Thumbnails class="layout-content-left" />
-      <div class="layout-content-center">
-        <CanvasTool class="center-top" />
-        <Canvas class="center-body" :style="{ height: `calc(100% - ${remarkHeight + 40}px)` }" />
-        <Remark
-          class="center-bottom" 
-          v-model:height="remarkHeight" 
-          :style="{ height: `${remarkHeight}px` }"
-        />
+      <div class="layout-content-center" :class="{ motion: editorMode === 'motion' }">
+        <div class="editor-mode-bar">
+          <div class="mode-switch">
+            <button :class="{ active: editorMode === 'static' }" @click="editorMode = 'static'">
+              <span class="mode-icon">▣</span>
+              静态设计
+            </button>
+            <button :class="{ active: editorMode === 'motion' }" @click="editorMode = 'motion'">
+              <span class="mode-icon">◆</span>
+              动效时间轴
+            </button>
+          </div>
+          <div class="mode-hint">
+            {{ editorMode === 'static' ? '编辑幻灯片画面与内容' : '每页即分镜 · 轨道与帧驱动 GSAP 动效' }}
+          </div>
+        </div>
+
+        <template v-if="editorMode === 'static'">
+          <CanvasTool class="center-top" />
+          <Canvas class="center-body" :style="{ height: `calc(100% - ${remarkHeight + 80}px)` }" />
+          <Remark
+            class="center-bottom"
+            v-model:height="remarkHeight"
+            :style="{ height: `${remarkHeight}px` }"
+          />
+        </template>
+        <MotionEditor v-else class="motion-editor-view" />
       </div>
-      <Toolbar class="layout-content-right" />
+      <Toolbar v-if="editorMode === 'static'" class="layout-content-right" />
     </div>
   </div>
 
@@ -59,6 +78,7 @@ import CanvasTool from './CanvasTool/index.vue'
 import Thumbnails from './Thumbnails/index.vue'
 import Toolbar from './Toolbar/index.vue'
 import Remark from './Remark/index.vue'
+import MotionEditor from './MotionEditor/index.vue'
 import ChartDataEditorDialog from './ChartDataEditorDialog.vue'
 import LatexEditorDialog from './LatexEditorDialog.vue'
 import ExportDialog from './ExportDialog/index.vue'
@@ -87,6 +107,7 @@ const closeExportDialog = () => mainStore.setDialogForExport('')
 const closeAIPPTDialog = () => mainStore.setAIPPTDialogState(false)
 
 const remarkHeight = ref(40)
+const editorMode = ref<'static' | 'motion'>('static')
 
 useGlobalHotkey()
 usePasteEvent()
@@ -114,9 +135,61 @@ usePasteEvent()
   .center-top {
     height: 40px;
   }
+
+  &.motion {
+    width: calc(100% - 160px);
+  }
 }
 .layout-content-right {
   width: 260px;
   height: 100%;
+}
+.editor-mode-bar {
+  height: 40px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid $borderColor;
+  background: #fff;
+  user-select: none;
+}
+.mode-switch {
+  height: 30px;
+  padding: 3px;
+  display: flex;
+  align-items: center;
+  border-radius: 7px;
+  background: #f1f1f5;
+
+  button {
+    height: 24px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 0;
+    border-radius: 5px;
+    color: #666;
+    background: transparent;
+    font-size: 12px;
+    cursor: pointer;
+
+    &.active {
+      color: #fff;
+      background: #6d4aff;
+      box-shadow: 0 2px 6px rgba(109, 74, 255, .25);
+    }
+  }
+}
+.mode-icon {
+  font-size: 10px;
+}
+.mode-hint {
+  color: #999;
+  font-size: 11px;
+}
+.motion-editor-view {
+  height: calc(100% - 40px);
 }
 </style>

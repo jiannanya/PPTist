@@ -71,6 +71,7 @@ export const useSlidesStore = defineStore('slides', {
   
     currentSlideAnimations(state) {
       const currentSlide = state.slides[state.slideIndex]
+      if (currentSlide?.motion) return []
       if (!currentSlide?.animations) return []
 
       const els = currentSlide.elements
@@ -83,6 +84,7 @@ export const useSlidesStore = defineStore('slides', {
     // 为触发条件为“上一动画之后”项目的上一项添加自动向下执行标记
     formatedAnimations(state) {
       const currentSlide = state.slides[state.slideIndex]
+      if (currentSlide?.motion) return []
       if (!currentSlide?.animations) return []
 
       const els = currentSlide.elements
