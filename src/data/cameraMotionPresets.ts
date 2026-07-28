@@ -573,6 +573,283 @@ const CINEMATIC_PRESETS: CameraMotionPresetDefinition[] = [
       ),
     ]
   ),
+  cinematic(
+    'cinematic-focus-closeup-center',
+    '拉近聚焦·中心特写',
+    'Focus Close-up · Center',
+    '沿画面中心平稳推近，并用背景轻微失焦把注意力锁定在核心信息。',
+    2.4,
+    'medium',
+    ['拉近', '聚焦', '中心特写'],
+    [
+      fromTo(0, '$stage',
+        { scale: 1, x: 0, y: 0 },
+        { scale: 1.26, x: 0, y: -6, duration: 2.4, ease: 'power3.inOut', force3D: true }
+      ),
+      to(0.25, '$background', { scale: 1.06, filter: 'blur(3px)', duration: 1.9, ease: 'sine.inOut', force3D: true }),
+      to(0.38, '$selected', { scale: 1.06, filter: 'blur(0px)', duration: 1.75, ease: 'power2.out', force3D: true }),
+    ]
+  ),
+  cinematic(
+    'cinematic-focus-closeup-left',
+    '拉近聚焦·左侧特写',
+    'Focus Close-up · Left',
+    '镜头向左侧内容区推进，适合人物、图表或左栏关键结论的近景强调。',
+    2.5,
+    'medium',
+    ['拉近', '聚焦', '左侧构图'],
+    [
+      fromTo(0, '$stage',
+        { scale: 1, x: 0, y: 0 },
+        { scale: 1.28, x: 112, y: -4, duration: 2.5, ease: 'power3.inOut', force3D: true }
+      ),
+      to(0.25, '$background', { filter: 'blur(3px)', duration: 2, ease: 'sine.inOut' }),
+      to(0.42, '$selected', { scale: 1.07, duration: 1.7, ease: 'power2.out', force3D: true }),
+    ]
+  ),
+  cinematic(
+    'cinematic-focus-closeup-right',
+    '拉近聚焦·右侧特写',
+    'Focus Close-up · Right',
+    '镜头向右侧内容区推进，适合公式、数据或右栏视觉锚点的近景强调。',
+    2.5,
+    'medium',
+    ['拉近', '聚焦', '右侧构图'],
+    [
+      fromTo(0, '$stage',
+        { scale: 1, x: 0, y: 0 },
+        { scale: 1.28, x: -112, y: -4, duration: 2.5, ease: 'power3.inOut', force3D: true }
+      ),
+      to(0.25, '$background', { filter: 'blur(3px)', duration: 2, ease: 'sine.inOut' }),
+      to(0.42, '$selected', { scale: 1.07, duration: 1.7, ease: 'power2.out', force3D: true }),
+    ]
+  ),
+  cinematic(
+    'cinematic-focus-closeup-top',
+    '拉近聚焦·上方特写',
+    'Focus Close-up · Top',
+    '镜头向上方标题或视觉焦点推近，适合章节标题和顶部数据的聚焦。',
+    2.5,
+    'medium',
+    ['拉近', '聚焦', '上方构图'],
+    [
+      fromTo(0, '$stage',
+        { scale: 1, x: 0, y: 0 },
+        { scale: 1.28, x: 0, y: 106, duration: 2.5, ease: 'power3.inOut', force3D: true }
+      ),
+      to(0.25, '$background', { filter: 'blur(3px)', duration: 2, ease: 'sine.inOut' }),
+      to(0.42, '$selected', { scale: 1.07, duration: 1.7, ease: 'power2.out', force3D: true }),
+    ]
+  ),
+  cinematic(
+    'cinematic-focus-closeup-bottom',
+    '拉近聚焦·下方特写',
+    'Focus Close-up · Bottom',
+    '镜头向下方结论或注释区推近，适合结论落点和底部信息的聚焦。',
+    2.5,
+    'medium',
+    ['拉近', '聚焦', '下方构图'],
+    [
+      fromTo(0, '$stage',
+        { scale: 1, x: 0, y: 0 },
+        { scale: 1.28, x: 0, y: -106, duration: 2.5, ease: 'power3.inOut', force3D: true }
+      ),
+      to(0.25, '$background', { filter: 'blur(3px)', duration: 2, ease: 'sine.inOut' }),
+      to(0.42, '$selected', { scale: 1.07, duration: 1.7, ease: 'power2.out', force3D: true }),
+    ]
+  ),
+  cinematic(
+    'cinematic-focus-closeup-macro',
+    '拉近聚焦·微距细节',
+    'Focus Close-up · Macro',
+    '两段式推进到微距景别，先建立方向，再缓慢压近关键数字或局部细节。',
+    3.4,
+    'strong',
+    ['拉近', '微距', '细节'],
+    [
+      to(0, '$stage', { scale: 1.3, x: -46, y: -50, duration: 1, ease: 'power3.inOut', force3D: true }),
+      to(1, '$stage', { scale: 1.42, x: -58, y: -62, duration: 2.25, ease: 'sine.inOut', force3D: true }),
+      to(0.2, '$background', { filter: 'blur(5px)', duration: 2.6, ease: 'sine.inOut' }),
+      fromTo(0.45, '$selected',
+        { scale: 0.94, filter: 'blur(3px)' },
+        { scale: 1.1, filter: 'blur(0px)', duration: 1.65, ease: 'power3.out', force3D: true }
+      ),
+    ]
+  ),
+  cinematic(
+    'cinematic-focus-lock-on',
+    '锁定主体推近',
+    'Subject Lock Push',
+    '整体镜头推近时对选中主体做反向补偿，使主体稳定、环境在周围扩张。',
+    2.8,
+    'medium',
+    ['主体锁定', '推近', '反向补偿'],
+    [
+      to(0, '$stage', { scale: 1.24, y: -10, duration: 2.8, ease: 'power3.inOut', force3D: true }),
+      to(0, '$selected', { scale: 0.82, y: 8, duration: 2.8, ease: 'power3.inOut', force3D: true }),
+      to(0.25, '$background', { scale: 1.08, filter: 'blur(3px)', duration: 2.25, ease: 'sine.inOut', force3D: true }),
+    ]
+  ),
+  cinematic(
+    'cinematic-focus-rack-push',
+    '推近转焦',
+    'Rack Focus Push',
+    '镜头推进同时把焦点从背景转移到选中元素，形成电影式注意力交接。',
+    2.6,
+    'medium',
+    ['转焦', '推近', '景深'],
+    [
+      fromTo(0, '$stage',
+        { scale: 1.01, y: 8 },
+        { scale: 1.2, y: -8, duration: 2.6, ease: 'power3.inOut', force3D: true }
+      ),
+      fromTo(0.15, '$selected',
+        { scale: 0.92, filter: 'blur(8px)', autoAlpha: 0.64 },
+        { scale: 1.07, filter: 'blur(0px)', autoAlpha: 1, duration: 1.75, ease: 'power3.out', force3D: true }
+      ),
+      to(0.62, '$background', { filter: 'blur(5px)', duration: 1.5, ease: 'sine.inOut' }),
+    ]
+  ),
+  cinematic(
+    'cinematic-pull-reveal-wide',
+    '拉远揭示·全景',
+    'Pull-out Reveal · Wide',
+    '从近景平稳拉远到宽阔全景，用于揭示页面全貌、关系网络或完整结论。',
+    3.2,
+    'medium',
+    ['拉远', '揭示', '全景'],
+    [
+      fromTo(0, '$stage',
+        { scale: 1.32, x: -34, y: -30 },
+        { scale: 0.94, x: 0, y: 0, duration: 3.2, ease: 'power3.inOut', force3D: true }
+      ),
+      fromTo(0.12, '$background',
+        { scale: 1.13, filter: 'blur(4px)' },
+        { scale: 1, filter: 'blur(0px)', duration: 2.7, ease: 'sine.inOut', force3D: true }
+      ),
+    ]
+  ),
+  cinematic(
+    'cinematic-pull-reveal-context',
+    '拉远揭示·环境',
+    'Pull-out Reveal · Context',
+    '从偏移近景拉回完整环境，让主体与背景、辅助信息逐步建立空间关系。',
+    3,
+    'medium',
+    ['拉远', '环境', '关系揭示'],
+    [
+      fromTo(0, '$stage',
+        { scale: 1.22, x: 90, y: 62, rotation: 0.8 },
+        { scale: 0.98, x: 0, y: 0, rotation: 0, duration: 3, ease: 'power3.inOut', force3D: true }
+      ),
+      fromTo(0.1, '$background',
+        { scale: 1.1, filter: 'blur(4px)', autoAlpha: 0.72 },
+        { scale: 1, filter: 'blur(0px)', autoAlpha: 1, duration: 2.5, ease: 'power2.inOut', force3D: true }
+      ),
+    ]
+  ),
+  cinematic(
+    'cinematic-pull-reveal-subject',
+    '拉远揭示·主体保持',
+    'Pull-out Reveal · Subject Hold',
+    '镜头拉远时放大选中主体作视觉补偿，使环境展开但核心主体仍然稳定醒目。',
+    3.1,
+    'medium',
+    ['拉远', '主体保持', '反向补偿'],
+    [
+      fromTo(0, '$stage',
+        { scale: 1.24, x: -26, y: -18 },
+        { scale: 0.92, x: 0, y: 0, duration: 3.1, ease: 'power3.inOut', force3D: true }
+      ),
+      fromTo(0, '$selected',
+        { scale: 0.82, x: 20, y: 14 },
+        { scale: 1.16, x: 0, y: 0, duration: 3.1, ease: 'power3.inOut', force3D: true }
+      ),
+      fromTo(0.25, '$background',
+        { filter: 'blur(4px)', autoAlpha: 0.7 },
+        { filter: 'blur(0px)', autoAlpha: 1, duration: 2.4, ease: 'sine.inOut' }
+      ),
+    ]
+  ),
+  cinematic(
+    'cinematic-pull-away-epilogue',
+    '拉远退场·片尾留白',
+    'Pull-away Epilogue',
+    '比普通片尾拉远更深地退出场景，降低亮度并留出结束呼吸。',
+    4.4,
+    'subtle',
+    ['拉远', '片尾', '留白'],
+    [
+      fromTo(0, '$stage',
+        { scale: 1.08, y: -8, autoAlpha: 1 },
+        { scale: 0.8, y: 22, autoAlpha: 0.72, duration: 4.4, ease: 'sine.inOut', force3D: true }
+      ),
+      to(0, '$background', { scale: 0.96, filter: 'brightness(0.76) saturate(0.84)', duration: 4.4, ease: 'sine.inOut', force3D: true }),
+    ]
+  ),
+  cinematic(
+    'cinematic-truck-left',
+    '轨道横移·向左',
+    'Truck Left',
+    '保持景别的水平轨道横移，适合横向比较、长图或多栏叙事。',
+    3.6,
+    'subtle',
+    ['横移', '轨道', '向左'],
+    [
+      fromTo(0, '$stage',
+        { scale: 1.07, x: 138, y: 0 },
+        { scale: 1.07, x: -138, y: 0, duration: 3.6, ease: 'sine.inOut', force3D: true }
+      ),
+    ]
+  ),
+  cinematic(
+    'cinematic-truck-right',
+    '轨道横移·向右',
+    'Truck Right',
+    '保持景别的反向水平轨道横移，用于从结论回看原因或反向浏览。',
+    3.6,
+    'subtle',
+    ['横移', '轨道', '向右'],
+    [
+      fromTo(0, '$stage',
+        { scale: 1.07, x: -138, y: 0 },
+        { scale: 1.07, x: 138, y: 0, duration: 3.6, ease: 'sine.inOut', force3D: true }
+      ),
+    ]
+  ),
+  cinematic(
+    'cinematic-jib-sweep',
+    '摇臂复合扫镜',
+    'Jib Sweep',
+    '模拟摇臂从低位掠过并抬升到稳定构图，兼具纵深、横移和轻微俯仰。',
+    4.2,
+    'medium',
+    ['摇臂', '复合运动', '建立镜头'],
+    [
+      fromTo(0, '$stage',
+        { scale: 1.13, x: 120, y: 130, rotationX: -7, rotationY: 4, transformPerspective: 1400 },
+        { scale: 1.06, x: -26, y: -38, rotationX: 2, rotationY: -1, duration: 2.6, ease: 'power2.inOut', force3D: true }
+      ),
+      to(2.6, '$stage', { scale: 1.02, x: 0, y: 0, rotationX: 0, rotationY: 0, duration: 1.5, ease: 'sine.out', force3D: true }),
+    ]
+  ),
+  cinematic(
+    'cinematic-steadicam-walk',
+    '斯坦尼康跟随',
+    'Steadicam Walk',
+    '用低振幅连续位移模拟稳定器跟拍，保留行进感而不产生手持抖动。',
+    4,
+    'subtle',
+    ['跟拍', '稳定器', '行进'],
+    [
+      fromTo(0, '$stage',
+        { scale: 1.08, x: 34, y: 22, rotation: 0.35 },
+        { scale: 1.1, x: -22, y: -12, rotation: -0.2, duration: 1.3, ease: 'sine.inOut', force3D: true }
+      ),
+      to(1.3, '$stage', { scale: 1.12, x: 18, y: -22, rotation: 0.18, duration: 1.25, ease: 'sine.inOut', force3D: true }),
+      to(2.55, '$stage', { scale: 1.14, x: -8, y: -34, rotation: -0.08, duration: 1.35, ease: 'sine.inOut', force3D: true }),
+    ]
+  ),
 ]
 
 const SOCIAL_PRESETS: CameraMotionPresetDefinition[] = [
@@ -1041,6 +1318,262 @@ const SOCIAL_PRESETS: CameraMotionPresetDefinition[] = [
       to(0.28, '$stage', { x: 0, scale: 1.06, duration: 0.18, ease: 'back.out(3)', force3D: true }),
     ]
   ),
+  social(
+    'social-focus-punch-center',
+    '爆点聚焦特写·中心',
+    'Focus Punch · Center',
+    '快速砸向中心爆点并轻微回弹，适合标题、答案或关键数字。',
+    0.72,
+    'strong',
+    ['爆点', '聚焦', '中心特写'],
+    [
+      to(0, '$stage', { scale: 1.28, y: -8, duration: 0.22, ease: 'power4.out', force3D: true }),
+      to(0.22, '$stage', { scale: 1.18, y: -4, duration: 0.32, ease: 'back.out(2.4)', force3D: true }),
+      to(0.05, '$selected', { scale: 1.12, duration: 0.36, ease: 'back.out(2)', force3D: true }),
+    ]
+  ),
+  social(
+    'social-focus-punch-left',
+    '爆点聚焦特写·左侧',
+    'Focus Punch · Left',
+    '快速推向左侧主体，适合人物头像、问题卡片或左栏结论。',
+    0.74,
+    'strong',
+    ['爆点', '聚焦', '左侧构图'],
+    [
+      to(0, '$stage', { scale: 1.3, x: 118, y: -5, duration: 0.23, ease: 'power4.out', force3D: true }),
+      to(0.23, '$stage', { scale: 1.2, x: 98, y: -3, duration: 0.32, ease: 'back.out(2.4)', force3D: true }),
+      to(0.05, '$selected', { scale: 1.12, duration: 0.36, ease: 'back.out(2)', force3D: true }),
+    ]
+  ),
+  social(
+    'social-focus-punch-right',
+    '爆点聚焦特写·右侧',
+    'Focus Punch · Right',
+    '快速推向右侧主体，适合公式、结果卡片或右栏视觉锚点。',
+    0.74,
+    'strong',
+    ['爆点', '聚焦', '右侧构图'],
+    [
+      to(0, '$stage', { scale: 1.3, x: -118, y: -5, duration: 0.23, ease: 'power4.out', force3D: true }),
+      to(0.23, '$stage', { scale: 1.2, x: -98, y: -3, duration: 0.32, ease: 'back.out(2.4)', force3D: true }),
+      to(0.05, '$selected', { scale: 1.12, duration: 0.36, ease: 'back.out(2)', force3D: true }),
+    ]
+  ),
+  social(
+    'social-focus-punch-top',
+    '爆点聚焦特写·上方',
+    'Focus Punch · Top',
+    '快速推向顶部标题区，强化开场钩子、章节名或顶部弹幕。',
+    0.74,
+    'strong',
+    ['爆点', '聚焦', '上方构图'],
+    [
+      to(0, '$stage', { scale: 1.3, y: 106, duration: 0.23, ease: 'power4.out', force3D: true }),
+      to(0.23, '$stage', { scale: 1.2, y: 88, duration: 0.32, ease: 'back.out(2.4)', force3D: true }),
+      to(0.05, '$selected', { scale: 1.12, duration: 0.36, ease: 'back.out(2)', force3D: true }),
+    ]
+  ),
+  social(
+    'social-focus-punch-bottom',
+    '爆点聚焦特写·下方',
+    'Focus Punch · Bottom',
+    '快速推向底部结论区，适合答案揭晓、字幕结论或行动号召。',
+    0.74,
+    'strong',
+    ['爆点', '聚焦', '下方构图'],
+    [
+      to(0, '$stage', { scale: 1.3, y: -106, duration: 0.23, ease: 'power4.out', force3D: true }),
+      to(0.23, '$stage', { scale: 1.2, y: -88, duration: 0.32, ease: 'back.out(2.4)', force3D: true }),
+      to(0.05, '$selected', { scale: 1.12, duration: 0.36, ease: 'back.out(2)', force3D: true }),
+    ]
+  ),
+  social(
+    'social-triple-push',
+    '三连节拍推近',
+    'Triple Beat Push',
+    '连续三次阶梯式推近，把节拍、口播重音或递进论点转成镜头冲击。',
+    1.05,
+    'strong',
+    ['三连推', '节拍', '递进'],
+    [
+      to(0, '$stage', { scale: 1.08, duration: 0.18, ease: 'power4.out', force3D: true }),
+      to(0.18, '$stage', { scale: 1.04, duration: 0.12, ease: 'power2.out', force3D: true }),
+      to(0.34, '$stage', { scale: 1.14, duration: 0.18, ease: 'power4.out', force3D: true }),
+      to(0.52, '$stage', { scale: 1.09, duration: 0.12, ease: 'power2.out', force3D: true }),
+      to(0.68, '$stage', { scale: 1.22, duration: 0.2, ease: 'power4.out', force3D: true }),
+      to(0.88, '$stage', { scale: 1.15, duration: 0.16, ease: 'back.out(2)', force3D: true }),
+    ]
+  ),
+  social(
+    'social-fast-pull-reveal',
+    '快速拉远揭示',
+    'Fast Pull-out Reveal',
+    '从强近景迅速拉到宽景并回弹，瞬间揭示完整页面或反差信息。',
+    0.82,
+    'strong',
+    ['拉远', '揭示', '反差'],
+    [
+      fromTo(0, '$stage',
+        { scale: 1.34, x: -34, y: -28, filter: 'blur(4px)' },
+        { scale: 0.88, x: 0, y: 0, filter: 'blur(0px)', duration: 0.3, ease: 'power4.out', force3D: true }
+      ),
+      to(0.3, '$stage', { scale: 1, duration: 0.34, ease: 'back.out(2.6)', force3D: true }),
+    ]
+  ),
+  social(
+    'social-pull-then-punch',
+    '先拉远再猛推',
+    'Pull Then Punch',
+    '先拉远制造吸气，再猛推至近景形成二段冲击，适合反转和答案揭晓。',
+    1.05,
+    'strong',
+    ['拉远', '推近', '反转'],
+    [
+      to(0, '$stage', { scale: 0.86, duration: 0.24, ease: 'power3.out', force3D: true }),
+      to(0.3, '$stage', { scale: 1.24, y: -8, duration: 0.24, ease: 'power4.out', force3D: true }),
+      to(0.54, '$stage', { scale: 1.1, y: -3, duration: 0.36, ease: 'back.out(2.6)', force3D: true }),
+      to(0.32, '$selected', { scale: 1.14, duration: 0.38, ease: 'back.out(2)', force3D: true }),
+    ]
+  ),
+  social(
+    'social-spin-orbit',
+    '旋转环绕切入',
+    'Spin Orbit',
+    '用短促旋转、横移和透视完成半环绕切入，营造 360° 运镜的速度感。',
+    0.95,
+    'strong',
+    ['旋转', '环绕', '切入'],
+    [
+      fromTo(0, '$stage',
+        { scale: 0.88, x: -170, rotation: -16, rotationY: -18, filter: 'blur(12px)', transformPerspective: 1100 },
+        { scale: 1.11, x: 26, rotation: 2.2, rotationY: 5, filter: 'blur(0px)', duration: 0.46, ease: 'power4.out', force3D: true }
+      ),
+      to(0.46, '$stage', { scale: 1.04, x: 0, rotation: 0, rotationY: 0, duration: 0.32, ease: 'back.out(2.2)', force3D: true }),
+    ]
+  ),
+  social(
+    'social-mask-cover-reveal',
+    '遮挡式扫镜揭示',
+    'Mask Cover Reveal',
+    '用整页裁切遮挡完成快速扫镜揭示，适合作为手掌遮镜或物体掠过式转场。',
+    0.78,
+    'strong',
+    ['遮挡', '蒙版', '转场'],
+    [
+      fromTo(0, '$stage',
+        { clipPath: 'inset(0% 0% 0% 100%)', x: 90, scale: 1.08, filter: 'blur(8px)' },
+        { clipPath: 'inset(0% 0% 0% 0%)', x: 0, scale: 1, filter: 'blur(0px)', duration: 0.46, ease: 'power4.out', force3D: true }
+      ),
+      from(0.12, '$selected', { x: 70, autoAlpha: 0, scale: 0.9, duration: 0.42, ease: 'back.out(1.8)', force3D: true }),
+    ]
+  ),
+  social(
+    'social-lift-cut-up',
+    '升降转场·上抬',
+    'Lift Cut Up',
+    '画面从低位快速上抬归位，模拟升降机、手机抬起或镜头起身的切换。',
+    0.82,
+    'strong',
+    ['升降', '上抬', '转场'],
+    [
+      fromTo(0, '$stage',
+        { y: 300, scale: 1.14, rotationX: -10, filter: 'blur(14px)', transformPerspective: 1200 },
+        { y: -12, scale: 1.03, rotationX: 1, filter: 'blur(0px)', duration: 0.4, ease: 'power4.out', force3D: true }
+      ),
+      to(0.4, '$stage', { y: 0, scale: 1, rotationX: 0, duration: 0.22, ease: 'back.out(2.4)', force3D: true }),
+    ]
+  ),
+  social(
+    'social-gesture-swipe',
+    '手势划镜',
+    'Gesture Swipe',
+    '模拟手指快速横划页面的拖拽惯性，适合列表切换、对比和步骤推进。',
+    0.78,
+    'strong',
+    ['手势', '划镜', '惯性'],
+    [
+      fromTo(0, '$stage',
+        { x: 250, skewX: 12, rotation: 4, scale: 1.12, filter: 'blur(14px)' },
+        { x: -18, skewX: 0, rotation: -0.4, scale: 1.04, filter: 'blur(0px)', duration: 0.36, ease: 'power4.out', force3D: true }
+      ),
+      to(0.36, '$stage', { x: 0, rotation: 0, scale: 1, duration: 0.24, ease: 'back.out(2.6)', force3D: true }),
+    ]
+  ),
+  social(
+    'social-pov-walk',
+    '第一人称行进',
+    'First-person Walk',
+    '用快速前进、轻微摆动和上下步态模拟第一人称走入场景。',
+    1.45,
+    'strong',
+    ['第一人称', '行进', '沉浸'],
+    [
+      fromTo(0, '$stage',
+        { scale: 0.92, x: 24, y: 34, rotation: 1.2 },
+        { scale: 1.06, x: -10, y: -10, rotation: -0.6, duration: 0.38, ease: 'power3.out', force3D: true }
+      ),
+      to(0.38, '$stage', { scale: 1.12, x: 10, y: 8, rotation: 0.45, duration: 0.28, ease: 'sine.inOut', force3D: true }),
+      to(0.66, '$stage', { scale: 1.18, x: -7, y: -13, rotation: -0.3, duration: 0.28, ease: 'sine.inOut', force3D: true }),
+      to(0.94, '$stage', { scale: 1.22, x: 0, y: -5, rotation: 0, duration: 0.32, ease: 'power2.out', force3D: true }),
+    ]
+  ),
+  social(
+    'social-selfie-follow',
+    '自拍杆跟拍',
+    'Selfie Follow',
+    '主体保持前景，画面在轻微旋转和推移中跟随，模拟自拍杆移动的亲近感。',
+    1.25,
+    'medium',
+    ['自拍', '跟拍', '主体保持'],
+    [
+      fromTo(0, '$stage',
+        { scale: 1.24, x: 54, y: 24, rotation: 2.4 },
+        { scale: 1.08, x: -18, y: -8, rotation: -0.8, duration: 0.74, ease: 'power3.inOut', force3D: true }
+      ),
+      to(0.74, '$stage', { scale: 1.1, x: 0, y: 0, rotation: 0, duration: 0.34, ease: 'back.out(1.8)', force3D: true }),
+      fromTo(0, '$selected',
+        { scale: 0.88, x: -36, y: -14 },
+        { scale: 1.06, x: 0, y: 0, duration: 0.9, ease: 'power3.out', force3D: true }
+      ),
+    ]
+  ),
+  social(
+    'social-low-angle-rise',
+    '低角度仰拍上升',
+    'Low-angle Rise',
+    '从低位仰拍迅速上升到稳定画面，适合人物登场、品牌标识和强势结论。',
+    0.9,
+    'strong',
+    ['低角度', '仰拍', '登场'],
+    [
+      fromTo(0, '$stage',
+        { y: 190, scale: 1.18, rotationX: -14, transformPerspective: 1000, filter: 'blur(9px)' },
+        { y: -14, scale: 1.05, rotationX: 2, filter: 'blur(0px)', duration: 0.48, ease: 'power4.out', force3D: true }
+      ),
+      to(0.48, '$stage', { y: 0, scale: 1, rotationX: 0, duration: 0.24, ease: 'back.out(2.2)', force3D: true }),
+      from(0.18, '$selected', { scale: 0.78, y: 55, autoAlpha: 0, duration: 0.48, ease: 'back.out(1.9)', force3D: true }),
+    ]
+  ),
+  social(
+    'social-reverse-reveal',
+    '倒放式归位揭示',
+    'Reverse Reveal',
+    '从散开、失焦的近景反向收束到正常构图，模拟倒放素材的吸附感。',
+    0.88,
+    'strong',
+    ['倒放', '归位', '揭示'],
+    [
+      fromTo(0, '$stage',
+        { scale: 1.22, x: 82, y: -48, rotation: 5, filter: 'blur(14px)', autoAlpha: 0.35 },
+        { scale: 1, x: 0, y: 0, rotation: 0, filter: 'blur(0px)', autoAlpha: 1, duration: 0.54, ease: 'power4.out', force3D: true }
+      ),
+      fromTo(0.12, '$selected',
+        { scale: 1.34, rotation: -8, autoAlpha: 0 },
+        { scale: 1, rotation: 0, autoAlpha: 1, duration: 0.46, ease: 'back.out(2.2)', force3D: true }
+      ),
+    ]
+  ),
 ]
 
 export const CAMERA_MOTION_PRESETS = [
@@ -1071,6 +1604,6 @@ export const CAMERA_MOTION_PRESET_CATEGORIES = [
   },
 ]
 
-if (CAMERA_MOTION_PRESETS.length !== 64) {
-  throw new Error(`Camera motion preset catalog must contain 64 presets, got ${CAMERA_MOTION_PRESETS.length}`)
+if (CAMERA_MOTION_PRESETS.length !== 96) {
+  throw new Error(`Camera motion preset catalog must contain 96 presets, got ${CAMERA_MOTION_PRESETS.length}`)
 }

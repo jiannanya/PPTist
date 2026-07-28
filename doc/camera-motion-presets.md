@@ -1,10 +1,10 @@
 # PPTist camera motion presets
 
-The specialized PPTist build registers 64 camera presets in
+The specialized PPTist build registers 96 camera presets in
 `src/data/cameraMotionPresets.ts`:
 
-- 32 cinematic camera moves;
-- 32 social-video camera moves.
+- 48 cinematic camera moves;
+- 48 social-video camera moves.
 
 The permanent visual demo is `camera-motion-presets-demo.html`. Start the Vite
 app and open that page from the printed local URL:
@@ -18,7 +18,8 @@ npm run dev
 1. Open the motion timeline.
 2. Move the playhead to the desired narration cue.
 3. Select an ordinary slide element when the preset uses `$selected`.
-4. Choose a preset from the **运镜 64** picker.
+4. Choose a preset from the **运镜** picker. Its count is read directly from
+   the preset registry.
 5. Click **添加运镜**.
 
 The editor expands the preset into one or more normal `slide.motion.steps`.
@@ -42,9 +43,17 @@ transforms. Blur, brightness, and contrast are reserved for focus, flash,
 reveal, and glitch presets. Every loop is finite, and the slide-level
 `reducedMotion` behavior remains active.
 
-Run the demo's **验证 64 个** action after changing the registry. The required
+Run the demo's **验证全部** action after changing the registry. The required
 result is:
 
 ```text
-验证通过：64 / 64，失败 0
+验证通过：96 / 96，失败 0
 ```
+
+## Added focus and reveal families
+
+The extended catalog includes directional close-ups for the center, left,
+right, top, and bottom of a slide; macro and rack-focus pushes; subject-lock
+pushes; wide, contextual, subject-hold, and epilogue pull-outs; truck, jib, and
+Steadicam-style moves; plus social-video punch focus, beat pushes, mask/lift
+transitions, POV, selfie, low-angle, and reverse reveals.

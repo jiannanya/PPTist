@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PPTist · 64 Camera Motion Presets</title>
+  <title>PPTist · Camera Motion Presets</title>
   <style>
     :root {
       color-scheme: dark;
@@ -652,13 +652,13 @@
   <main class="app">
     <aside class="catalog">
       <div class="eyebrow">PPTIST MOTION LAB</div>
-      <h1>64 种运镜<br>一页就是一个镜头</h1>
+      <h1><span id="hero-count">0</span> 种运镜<br>一页就是一个镜头</h1>
       <p class="lede">与 PPTist 时间轴共用同一注册表和播放器。每个预设生成可编辑、可撤销的声明式 GSAP 帧。</p>
 
       <div class="stats">
-        <div class="stat"><strong id="total-count">64</strong><span>全部预设</span></div>
-        <div class="stat"><strong id="cinematic-count">32</strong><span>电影感</span></div>
-        <div class="stat"><strong id="social-count">32</strong><span>自媒体感</span></div>
+        <div class="stat"><strong id="total-count">0</strong><span>全部预设</span></div>
+        <div class="stat"><strong id="cinematic-count">0</strong><span>电影感</span></div>
+        <div class="stat"><strong id="social-count">0</strong><span>自媒体感</span></div>
       </div>
 
       <div class="filters">
@@ -692,7 +692,7 @@
           </label>
           <button id="restart">↺ 重播</button>
           <button id="pause">Ⅱ 暂停</button>
-          <button id="validate">验证 64 个</button>
+          <button id="validate">验证全部</button>
           <button id="play" class="primary">▶ 播放</button>
         </div>
       </header>
@@ -722,7 +722,7 @@
             </div>
 
             <div class="screen-element" data-element-id="badge">
-              <div class="badge-visual">64 PRESETS</div>
+              <div class="badge-visual"><span id="badge-count">0</span> PRESETS</div>
             </div>
 
             <div class="footer-note">CORE GSAP · SERIALIZABLE FRAMES · PPTIST PLAYER</div>
@@ -920,7 +920,8 @@
       let passed = 0
       const failures = []
       validation.classList.add('is-visible')
-      validation.textContent = '正在验证 64 个运镜…'
+      const total = CAMERA_MOTION_PRESETS.length
+      validation.textContent = `正在验证 ${total} 个运镜…`
 
       disposeMotionTimeline(timeline)
       timeline = null
@@ -940,13 +941,15 @@
       clearStage()
       playPreset(active, false)
       validation.textContent = failures.length
-        ? `验证 ${passed} / 64，失败 ${failures.length}`
-        : '验证通过：64 / 64，失败 0'
+        ? `验证 ${passed} / ${total}，失败 ${failures.length}`
+        : `验证通过：${passed} / ${total}，失败 0`
       if (failures.length) console.error(failures)
       setTimeout(() => validation.classList.remove('is-visible'), 3800)
     }
 
     document.querySelector('#total-count').textContent = String(CAMERA_MOTION_PRESETS.length)
+    document.querySelector('#hero-count').textContent = String(CAMERA_MOTION_PRESETS.length)
+    document.querySelector('#badge-count').textContent = String(CAMERA_MOTION_PRESETS.length)
     document.querySelector('#cinematic-count').textContent = String(
       CAMERA_MOTION_PRESETS.filter(preset => preset.categoryId === 'cinematic').length
     )

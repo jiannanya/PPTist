@@ -205,7 +205,7 @@
         </div>
 
         <div class="camera-preset-picker">
-          <span>运镜 64</span>
+          <span>运镜 {{ CAMERA_MOTION_PRESETS.length }}</span>
           <select v-model="selectedCameraPresetId">
             <optgroup
               v-for="category in CAMERA_MOTION_PRESET_CATEGORIES"
