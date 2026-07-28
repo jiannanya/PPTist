@@ -1,8 +1,10 @@
 <template>
   <div
     class="motion-editor"
+    tabindex="-1"
     @focusin="mainStore.setDisableHotkeysState(true)"
     @focusout="mainStore.setDisableHotkeysState(false)"
+    @keydown.capture="handleHistoryHotkey"
   >
     <section class="preview-panel">
       <header class="preview-toolbar">
@@ -11,12 +13,26 @@
           <strong>{{ sceneTitle }}</strong>
           <span>{{ formatTime(currentTime) }} / {{ formatTime(sceneDuration) }}</span>
         </div>
-        <div class="playback-controls">
-          <button title="回到首帧" @click="seek(0)">↺</button>
-          <button class="play-button" :class="{ active: isPlaying }" @click="togglePlay()">
-            {{ isPlaying ? 'Ⅱ' : '▶' }}
-          </button>
-          <button title="跳到末帧" @click="seek(sceneDuration)">↦</button>
+        <div class="preview-actions">
+          <div class="history-controls">
+            <button
+              :disabled="!canUndo"
+              :title="canUndo ? `撤销：${undoLabel}（Ctrl + Z）` : '没有可撤销的操作'"
+              @click="undoMotion"
+            >↶</button>
+            <button
+              :disabled="!canRedo"
+              :title="canRedo ? `重做：${redoLabel}（Ctrl + Y）` : '没有可重做的操作'"
+              @click="redoMotion"
+            >↷</button>
+          </div>
+          <div class="playback-controls">
+            <button title="回到首帧" @click="seek(0)">↺</button>
+            <button class="play-button" :class="{ active: isPlaying }" @click="togglePlay()">
+              {{ isPlaying ? 'Ⅱ' : '▶' }}
+            </button>
+            <button title="跳到末帧" @click="seek(sceneDuration)">↦</button>
+          </div>
         </div>
       </header>
 
@@ -119,6 +135,36 @@
         <div class="empty-icon">◆</div>
         <p>点击时间轴中的帧，或从下方预设为当前轨道添加新帧。</p>
       </div>
+
+      <section class="motion-history">
+        <header>
+          <div>
+            <strong>历史记录</strong>
+            <span>{{ snapshotCursor + 1 }} / {{ snapshotLength }}</span>
+          </div>
+          <small>点击记录可回到该状态</small>
+        </header>
+        <div class="history-list">
+          <button
+            v-for="entry in visibleHistoryEntries"
+            :key="entry.id"
+            :class="{
+              current: entry.cursor === snapshotCursor,
+              future: entry.cursor > snapshotCursor,
+              motion: entry.source === 'motion',
+            }"
+            :title="formatHistoryTime(entry.timestamp)"
+            @click="jumpToHistory(entry.cursor)"
+          >
+            <span class="history-dot"></span>
+            <span class="history-copy">
+              <strong>{{ entry.label }}</strong>
+              <small>{{ entry.source === 'motion' ? '动效时间轴' : entry.source === 'system' ? '系统' : '静态编辑' }}</small>
+            </span>
+            <span v-if="entry.cursor === snapshotCursor" class="current-mark">当前</span>
+          </button>
+        </div>
+      </section>
     </aside>
 
     <section class="timeline-panel">
@@ -232,7 +278,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch, useTemplateRef 
 import { storeToRefs } from 'pinia'
 import { nanoid } from 'nanoid'
 import { gsap } from 'gsap'
-import { useMainStore, useSlidesStore } from '@/store'
+import { useMainStore, useSlidesStore, useSnapshotStore } from '@/store'
 import type { PPTElement, Slide, SlideMotion, SlideMotionTween, SlideMotionVars } from '@/types/slides'
 import {
   calculateMotionStepTimings,
@@ -362,8 +408,18 @@ const PRESETS: MotionPreset[] = [
 
 const mainStore = useMainStore()
 const slidesStore = useSlidesStore()
+const snapshotStore = useSnapshotStore()
 const { currentSlide, slideIndex, viewportSize, viewportRatio } = storeToRefs(slidesStore)
-const { addHistorySnapshot } = useHistorySnapshot()
+const {
+  canUndo,
+  canRedo,
+  undoLabel,
+  redoLabel,
+  snapshotCursor,
+  snapshotLength,
+  historyEntries,
+} = storeToRefs(snapshotStore)
+const { addHistorySnapshotNow, undo, redo } = useHistorySnapshot()
 
 const previewWorkspaceRef = useTemplateRef<HTMLElement>('previewWorkspaceRef')
 const previewStageRef = useTemplateRef<HTMLElement>('previewStageRef')
@@ -380,6 +436,7 @@ const dragPreview = ref<{ index: number; start: number; duration: number } | nul
 let timeline: gsap.core.Timeline | null = null
 let motionContext: gsap.Context | null = null
 let resizeObserver: ResizeObserver | null = null
+let committingMotionHistory = false
 
 const previewSlide = computed<Slide | null>(() => {
   if (!currentSlide.value) return null
@@ -395,6 +452,9 @@ const ticks = computed(() => {
   const result: number[] = []
   for (let time = 0; time <= sceneDuration.value + 0.001; time += 0.5) result.push(Number(time.toFixed(1)))
   return result
+})
+const visibleHistoryEntries = computed(() => {
+  return historyEntries.value.slice().reverse()
 })
 
 const stripHtml = (html: string) => {
@@ -468,9 +528,26 @@ const ensureMotion = (): SlideMotion => {
   }
 }
 
-const commitMotion = async (nextMotion: SlideMotion, snapshot = true, preserveTime = true) => {
+const commitMotion = async (
+  nextMotion: SlideMotion,
+  label = '编辑动画帧',
+  snapshot = true,
+  preserveTime = true
+) => {
   slidesStore.updateSlide({ motion: nextMotion })
-  if (snapshot) addHistorySnapshot()
+  if (snapshot) {
+    committingMotionHistory = true
+    try {
+      await addHistorySnapshotNow({
+        label,
+        source: 'motion',
+        slideId: currentSlide.value.id,
+      })
+    }
+    finally {
+      committingMotionHistory = false
+    }
+  }
   await nextTick()
   rebuildTimeline(preserveTime)
 }
@@ -536,7 +613,7 @@ const seek = (time: number) => {
 
 const togglePlay = () => {
   if (!motion.value) {
-    commitMotion(ensureMotion(), true, false)
+    commitMotion(ensureMotion(), '创建动效时间轴', true, false)
     return
   }
   if (!timeline) return
@@ -605,7 +682,7 @@ const addPresetFrame = (preset: MotionPreset) => {
   nextMotion.duration = Math.max(nextMotion.duration || 0, currentTime.value + 1)
   selectedStepIndex.value = nextMotion.steps.length - 1
   selectedTrackId.value = target
-  commitMotion(nextMotion)
+  commitMotion(nextMotion, `添加预设：${preset.label}`)
 }
 
 const deleteSelectedStep = () => {
@@ -613,7 +690,7 @@ const deleteSelectedStep = () => {
   const nextMotion = ensureMotion()
   nextMotion.steps.splice(selectedStepIndex.value, 1)
   selectedStepIndex.value = -1
-  commitMotion(nextMotion)
+  commitMotion(nextMotion, '删除动画帧')
 }
 
 const duplicateSelectedStep = () => {
@@ -624,14 +701,20 @@ const duplicateSelectedStep = () => {
   clone.position = snapTime((selectedTiming.value?.start || 0) + 0.25)
   nextMotion.steps.push(clone)
   selectedStepIndex.value = nextMotion.steps.length - 1
-  commitMotion(nextMotion)
+  commitMotion(nextMotion, '复制动画帧')
 }
 
-const updateSelectedStep = (updater: (step: SlideMotionTween) => void) => {
+const updateSelectedStep = (
+  updater: (step: SlideMotionTween) => void,
+  label = '编辑动画帧'
+) => {
   if (!motion.value || selectedStepIndex.value < 0) return
   const nextMotion = ensureMotion()
-  updater(nextMotion.steps[selectedStepIndex.value])
-  commitMotion(nextMotion)
+  const step = nextMotion.steps[selectedStepIndex.value]
+  const before = JSON.stringify(step)
+  updater(step)
+  if (JSON.stringify(step) === before) return
+  commitMotion(nextMotion, label)
 }
 
 const varsForStep = (step: SlideMotionTween) => {
@@ -656,27 +739,42 @@ const booleanVar = (key: string, fallback: boolean) => {
   return typeof value === 'boolean' ? value : fallback
 }
 const eventInput = (event: Event) => event.target as HTMLInputElement
+const PROPERTY_LABELS: Record<string, string> = {
+  duration: '时长',
+  ease: '缓动曲线',
+  x: 'X 位移',
+  y: 'Y 位移',
+  scale: '缩放',
+  rotation: '旋转',
+  rotationX: '旋转 X',
+  rotationY: '旋转 Y',
+  autoAlpha: '透明度',
+  repeat: '重复次数',
+  filter: '滤镜',
+  yoyo: '往返播放',
+}
+const propertyLabel = (key: string) => PROPERTY_LABELS[key] || key
 
 const updateNumberVar = (key: string, event: Event) => {
   const value = Number(eventInput(event).value)
   if (!Number.isFinite(value)) return
   updateSelectedStep(step => {
     varsForStep(step)[key] = value
-  })
+  }, `修改帧属性：${propertyLabel(key)}`)
 }
 
 const updateStringVar = (key: string, event: Event) => {
   const value = eventInput(event).value
   updateSelectedStep(step => {
     varsForStep(step)[key] = value
-  })
+  }, `修改帧属性：${propertyLabel(key)}`)
 }
 
 const updateBooleanVar = (key: string, event: Event) => {
   const value = eventInput(event).checked
   updateSelectedStep(step => {
     varsForStep(step)[key] = value
-  })
+  }, `修改帧属性：${propertyLabel(key)}`)
 }
 
 const updateStepMethod = (event: Event) => {
@@ -694,21 +792,22 @@ const updateStepMethod = (event: Event) => {
       delete step.fromVars
       delete step.toVars
     }
-  })
+  }, '修改动画方式')
 }
 
 const updateStartTime = (event: Event) => {
   const value = snapTime(Number(eventInput(event).value))
   updateSelectedStep(step => {
     step.position = value
-  })
+  }, '修改帧开始时间')
 }
 
 const updateSceneDuration = (event: Event) => {
   const value = Math.max(1, Number(eventInput(event).value) || 1)
   const nextMotion = ensureMotion()
+  if (nextMotion.duration === value) return
   nextMotion.duration = value
-  commitMotion(nextMotion)
+  commitMotion(nextMotion, '修改分镜时长')
 }
 
 const selectPreviewElement = (event: MouseEvent) => {
@@ -738,7 +837,7 @@ const startFrameDrag = (event: MouseEvent, timing: MotionStepTiming) => {
     if (!preview) return
     updateSelectedStep(step => {
       step.position = preview.start
-    })
+    }, '拖动动画帧')
   }
 
   window.addEventListener('mousemove', move)
@@ -765,7 +864,7 @@ const startFrameResize = (event: MouseEvent, timing: MotionStepTiming) => {
       const vars = varsForStep(step)
       const repeat = Math.max(0, Number(vars.repeat) || 0)
       vars.duration = preview.duration / (repeat + 1)
-    })
+    }, '调整动画帧时长')
   }
 
   window.addEventListener('mousemove', move)
@@ -787,7 +886,60 @@ const startPlayheadDrag = (event: MouseEvent) => {
   window.addEventListener('mouseup', up)
 }
 
+const formatHistoryTime = (timestamp: number) => {
+  if (!timestamp) return '早期历史记录'
+  return new Date(timestamp).toLocaleTimeString('zh-CN', {
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+}
+
+const refreshAfterHistory = async () => {
+  await nextTick()
+  if (selectedStepIndex.value >= (motion.value?.steps.length || 0)) {
+    selectedStepIndex.value = -1
+  }
+  if (!tracks.value.some(track => track.id === selectedTrackId.value)) {
+    selectedTrackId.value = '$stage'
+  }
+  currentTime.value = 0
+  await rebuildTimeline(false)
+}
+
+const undoMotion = async () => {
+  if (!canUndo.value) return
+  await undo()
+}
+
+const redoMotion = async () => {
+  if (!canRedo.value) return
+  await redo()
+}
+
+const jumpToHistory = async (cursor: number) => {
+  if (cursor === snapshotCursor.value) return
+  await snapshotStore.jumpToSnapshot(cursor)
+}
+
+const handleHistoryHotkey = (event: KeyboardEvent) => {
+  if (!(event.ctrlKey || event.metaKey) || event.altKey) return
+  const key = event.key.toLowerCase()
+  const isUndo = key === 'z' && !event.shiftKey
+  const isRedo = key === 'y' || (key === 'z' && event.shiftKey)
+  if (!isUndo && !isRedo) return
+
+  event.preventDefault()
+  event.stopPropagation()
+  if (isUndo) undoMotion()
+  else redoMotion()
+}
+
 watch(selectedTrackId, () => nextTick(refreshSelectedOutline))
+watch(snapshotCursor, () => {
+  if (!committingMotionHistory) nextTick(refreshAfterHistory)
+})
 watch(slideIndex, () => {
   currentTime.value = 0
   selectedStepIndex.value = -1
@@ -890,6 +1042,38 @@ button {
   background: rgba(139, 92, 246, .18);
   border: 1px solid rgba(139, 92, 246, .4);
   font-size: 12px;
+}
+
+.preview-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.history-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 10px;
+  border-right: 1px solid var(--motion-border);
+
+  button {
+    width: 28px;
+    height: 28px;
+    border-radius: 5px;
+    background: var(--motion-panel-2);
+    font-size: 18px;
+
+    &:hover:not(:disabled) {
+      color: #ddd6fe;
+      background: #343445;
+    }
+
+    &:disabled {
+      opacity: .3;
+      cursor: not-allowed;
+    }
+  }
 }
 
 .playback-controls {
@@ -1097,7 +1281,7 @@ button {
 }
 
 .empty-inspector {
-  height: calc(100% - 66px);
+  min-height: 220px;
   padding: 40px 30px;
   display: flex;
   flex-direction: column;
@@ -1112,6 +1296,109 @@ button {
   margin-bottom: 16px;
   color: #8b5cf6;
   font-size: 38px;
+}
+
+.motion-history {
+  border-top: 1px solid var(--motion-border);
+
+  > header {
+    padding: 13px 14px 10px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+
+    div {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    span,
+    small {
+      color: var(--motion-muted);
+      font-size: 10px;
+    }
+
+    span {
+      padding: 2px 5px;
+      border-radius: 3px;
+      background: #292937;
+      font-family: Consolas, monospace;
+    }
+  }
+}
+
+.history-list {
+  padding: 0 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  > button {
+    width: 100%;
+    min-height: 42px;
+    padding: 6px 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+    border-radius: 5px;
+    background: transparent;
+
+    &:hover {
+      background: #292937;
+    }
+
+    &.current {
+      background: rgba(139, 92, 246, .18);
+      box-shadow: inset 2px 0 #8b5cf6;
+    }
+
+    &.future {
+      opacity: .45;
+    }
+  }
+}
+
+.history-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #6b7280;
+
+  .motion & {
+    background: #8b5cf6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, .14);
+  }
+}
+
+.history-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  strong {
+    overflow: hidden;
+    color: #e8e8f0;
+    font-size: 11px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  small {
+    color: var(--motion-muted);
+    font-size: 9px;
+  }
+}
+
+.current-mark {
+  color: #c4b5fd;
+  font-size: 9px;
 }
 
 .timeline-panel {

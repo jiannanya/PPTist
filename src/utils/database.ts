@@ -8,10 +8,20 @@ export interface writingBoardImg {
   dataURL: string
 }
 
+export type SnapshotSource = 'system' | 'editor' | 'motion'
+
+export interface SnapshotMetadata {
+  label: string
+  source: SnapshotSource
+  timestamp: number
+  slideId?: string
+}
+
 export interface Snapshot {
   id: number
   index: number
   slides: Slide[]
+  metadata?: SnapshotMetadata
 }
 
 const databaseNamePrefix = 'PPTist'
