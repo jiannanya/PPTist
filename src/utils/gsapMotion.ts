@@ -26,6 +26,7 @@ const ALLOWED_VARS = new Set([
   'clipPath',
   'backgroundColor',
   'color',
+  'letterSpacing',
   'repeat',
   'yoyo',
   'stagger',
@@ -63,7 +64,17 @@ export const resolveMotionTargets = (root: HTMLElement, elIds: string[]) => {
   const elementsById = new Map<string, HTMLElement>()
   root.querySelectorAll<HTMLElement>('.screen-element[data-element-id]').forEach(element => {
     const id = element.dataset.elementId
-    if (id) elementsById.set(id, element)
+    if (!id) return
+
+    // `.screen-element` is a full-slide overlay; the actual positioned PPT
+    // object is its first child. Animating the overlay makes rotation/scale
+    // orbit around the whole canvas instead of the element's own transform
+    // origin, which is especially visible in card flips and domino shots.
+    const visualElement = element.firstElementChild
+    elementsById.set(
+      id,
+      visualElement instanceof HTMLElement ? visualElement : element
+    )
   })
 
   const specialTargets = new Map<string, HTMLElement | null>([
