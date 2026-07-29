@@ -3,7 +3,7 @@
     <EditorHeader class="layout-header" />
     <div class="layout-content">
       <Thumbnails class="layout-content-left" />
-      <div class="layout-content-center" :class="{ motion: editorMode === 'motion' }">
+      <div class="layout-content-center" :class="{ wide: editorMode !== 'static' }">
         <div class="editor-mode-bar">
           <div class="mode-switch">
             <button :class="{ active: editorMode === 'static' }" @click="editorMode = 'static'">
@@ -14,9 +14,13 @@
               <span class="mode-icon">◆</span>
               动效时间轴
             </button>
+            <button :class="{ active: editorMode === 'clip' }" @click="editorMode = 'clip'">
+              <span class="mode-icon">▶</span>
+              视频剪辑
+            </button>
           </div>
           <div class="mode-hint">
-            {{ editorMode === 'static' ? '编辑幻灯片画面与内容' : '每页即分镜 · 轨道与帧驱动 GSAP 动效' }}
+            {{ modeHint }}
           </div>
         </div>
 
@@ -29,7 +33,8 @@
             :style="{ height: `${remarkHeight}px` }"
           />
         </template>
-        <MotionEditor v-else class="motion-editor-view" />
+        <MotionEditor v-else-if="editorMode === 'motion'" class="motion-editor-view" />
+        <ClipVideoEditor v-else class="clip-editor-view" />
       </div>
       <Toolbar v-if="editorMode === 'static'" class="layout-content-right" />
     </div>
@@ -66,7 +71,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useMainStore } from '@/store'
 import useGlobalHotkey from '@/hooks/useGlobalHotkey'
@@ -79,6 +84,7 @@ import Thumbnails from './Thumbnails/index.vue'
 import Toolbar from './Toolbar/index.vue'
 import Remark from './Remark/index.vue'
 import MotionEditor from './MotionEditor/index.vue'
+import ClipVideoEditor from './ClipVideoEditor/index.vue'
 import ChartDataEditorDialog from './ChartDataEditorDialog.vue'
 import LatexEditorDialog from './LatexEditorDialog.vue'
 import ExportDialog from './ExportDialog/index.vue'
@@ -107,7 +113,12 @@ const closeExportDialog = () => mainStore.setDialogForExport('')
 const closeAIPPTDialog = () => mainStore.setAIPPTDialogState(false)
 
 const remarkHeight = ref(40)
-const editorMode = ref<'static' | 'motion'>('static')
+const editorMode = ref<'static' | 'motion' | 'clip'>('static')
+const modeHint = computed(() => {
+  if (editorMode.value === 'static') return '编辑幻灯片画面与内容'
+  if (editorMode.value === 'motion') return '每页即分镜 · 轨道与帧驱动 GSAP 动效'
+  return 'Clip-JS 时间线 · 自动组片、手动剪辑与浏览器本地渲染'
+})
 
 useGlobalHotkey()
 usePasteEvent()
@@ -136,7 +147,7 @@ usePasteEvent()
     height: 40px;
   }
 
-  &.motion {
+  &.wide {
     width: calc(100% - 160px);
   }
 }
@@ -190,6 +201,9 @@ usePasteEvent()
   font-size: 11px;
 }
 .motion-editor-view {
+  height: calc(100% - 40px);
+}
+.clip-editor-view {
   height: calc(100% - 40px);
 }
 </style>
