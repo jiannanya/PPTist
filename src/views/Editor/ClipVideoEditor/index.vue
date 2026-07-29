@@ -33,6 +33,15 @@
         FPS
       </label>
 
+      <label class="duration-control">
+        录制质量
+        <select v-model.number="captureScale">
+          <option :value="0.5">极速 50% · 1/4 帧采样</option>
+          <option :value="0.8">均衡 80% · 1/2 帧采样</option>
+          <option :value="1">原尺寸 100% · 全帧</option>
+        </select>
+      </label>
+
       <div class="clip-status" :class="statusTone">
         <span class="status-dot"></span>
         {{ statusText }}
@@ -63,7 +72,7 @@
     >
       <ScreenSlide
         v-if="captureSlide"
-        :key="captureSlide.id"
+        :key="`${captureSlide.id}-${captureRenderKey}`"
         :slide="captureSlide"
         :active="false"
         :scale="1"
@@ -79,6 +88,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
 import { storeToRefs } from 'pinia'
 import html2canvas from 'html2canvas'
+import { toCanvas as captureDomCanvas } from 'html-to-image'
 import { ArrayBufferTarget, Muxer } from 'mp4-muxer'
 import { useSlidesStore } from '@/store'
 import type { Slide } from '@/types/slides'
@@ -101,12 +111,14 @@ const { slides, title, viewportSize, viewportRatio } = storeToRefs(slidesStore)
 const clipFrameRef = useTemplateRef<HTMLIFrameElement>('clipFrameRef')
 const captureDeckRef = useTemplateRef<HTMLElement>('captureDeckRef')
 const captureSlide = ref<Slide | null>(null)
+const captureRenderKey = ref(0)
 const clipReady = ref(false)
 const rendererReady = ref(false)
 const exporting = ref(false)
 const exportProgress = ref('')
 const fallbackDuration = ref(4)
-const captureFps = ref(30)
+const captureFps = ref(6)
+const captureScale = ref(0.8)
 const statusText = ref('等待 Clip-JS')
 const statusTone = ref<'idle' | 'working' | 'success' | 'error'>('idle')
 const pendingAutoRender = ref(false)
@@ -139,6 +151,38 @@ const setStatus = (
 const getCaptureFps = () => {
   const value = Math.round(Number(captureFps.value) || slides.value[0]?.motion?.fps || 30)
   return Math.min(60, Math.max(6, value))
+}
+
+const greatestCommonDivisor = (left: number, right: number) => {
+  let a = Math.max(1, Math.round(Math.abs(left)))
+  let b = Math.max(1, Math.round(Math.abs(right)))
+  while (b !== 0) {
+    const remainder = a % b
+    a = b
+    b = remainder
+  }
+  return a
+}
+
+const getCaptureDimensions = (width: number, height: number) => {
+  const scale = Math.min(1, Math.max(0.5, Number(captureScale.value) || 0.8))
+  const divisor = greatestCommonDivisor(width, height)
+  const ratioWidth = width / divisor
+  const ratioHeight = height / divisor
+  let ratioMultiple = Math.max(1, Math.round(divisor * scale))
+
+  // H.264 implementations are more reliable with even dimensions. Scaling by a
+  // common ratio multiple keeps the storyboard aspect ratio exact.
+  if ((ratioWidth % 2 !== 0 || ratioHeight % 2 !== 0) && ratioMultiple % 2 !== 0) {
+    ratioMultiple += 1
+  }
+
+  return {
+    width: ratioWidth * ratioMultiple,
+    height: ratioHeight * ratioMultiple,
+    scale,
+    frameStep: scale <= 0.5 ? 4 : scale < 1 ? 2 : 1,
+  }
 }
 
 const sceneDuration = (slide: Slide) => {
@@ -176,92 +220,112 @@ const waitForSlideAssets = async (root: HTMLElement) => {
   await nextFrame()
 }
 
-interface CachedFrameRenderer {
-  capture: () => Promise<HTMLCanvasElement>
+interface PreparedFrame {
+  draw: (context: CanvasRenderingContext2D) => void
   dispose: () => void
 }
 
-const serializeComputedStyle = (element: Element) => {
-  const style = getComputedStyle(element)
-  let cssText = ''
-  for (let index = 0; index < style.length; index++) {
-    const property = style.item(index)
-    cssText += `${property}:${style.getPropertyValue(property)}${style.getPropertyPriority(property) ? ' !important' : ''};`
-  }
-  return cssText
+interface CachedFrameRenderer {
+  prepare: () => Promise<PreparedFrame>
+  dispose: () => void
 }
+
+const CAPTURE_STYLE_PROPERTIES: string[] = [
+  'align-content', 'align-items', 'align-self',
+  'backface-visibility',
+  'background-color', 'background-image', 'background-origin', 'background-position',
+  'background-repeat', 'background-size',
+  'border-bottom-color', 'border-bottom-left-radius', 'border-bottom-right-radius',
+  'border-bottom-style', 'border-bottom-width',
+  'border-left-color', 'border-left-style', 'border-left-width',
+  'border-right-color', 'border-right-style', 'border-right-width',
+  'border-top-color', 'border-top-left-radius', 'border-top-right-radius',
+  'border-top-style', 'border-top-width',
+  'bottom', 'box-shadow', 'box-sizing',
+  'clip', 'clip-path', 'color', 'column-gap',
+  'display',
+  'fill', 'fill-opacity', 'fill-rule',
+  'filter', 'flex-basis', 'flex-direction', 'flex-grow', 'flex-shrink', 'flex-wrap',
+  'float',
+  'font-family', 'font-feature-settings', 'font-kerning', 'font-size',
+  'font-stretch', 'font-style', 'font-variant', 'font-weight',
+  'gap', 'grid-auto-columns', 'grid-auto-flow', 'grid-auto-rows',
+  'grid-column-end', 'grid-column-start', 'grid-row-end', 'grid-row-start',
+  'grid-template-columns', 'grid-template-rows',
+  'height',
+  'inset', 'isolation',
+  'justify-content', 'justify-items', 'justify-self',
+  'left', 'letter-spacing', 'line-height', 'list-style-position', 'list-style-type',
+  'margin-bottom', 'margin-left', 'margin-right', 'margin-top',
+  'mask-image', 'mask-position', 'mask-repeat', 'mask-size',
+  'max-height', 'max-width', 'min-height', 'min-width', 'mix-blend-mode',
+  'object-fit', 'object-position', 'opacity', 'order', 'overflow', 'overflow-wrap',
+  'overflow-x', 'overflow-y',
+  'padding-bottom', 'padding-left', 'padding-right', 'padding-top',
+  'paint-order', 'perspective', 'perspective-origin', 'pointer-events', 'position',
+  'right', 'row-gap',
+  'shape-rendering', 'stop-color', 'stop-opacity',
+  'stroke', 'stroke-dasharray', 'stroke-dashoffset', 'stroke-linecap',
+  'stroke-linejoin', 'stroke-miterlimit', 'stroke-opacity', 'stroke-width',
+  'table-layout',
+  'text-align', 'text-decoration-color', 'text-decoration-line',
+  'text-decoration-style', 'text-indent', 'text-overflow', 'text-rendering',
+  'text-shadow', 'text-transform',
+  'top', 'transform', 'transform-origin', 'transform-style',
+  'user-select',
+  'vector-effect', 'vertical-align', 'visibility',
+  'white-space', 'width', 'word-break', 'word-spacing', 'writing-mode',
+  'z-index',
+]
 
 const createCachedFrameRenderer = (
   root: HTMLElement,
-  width: number,
-  height: number
+  sourceWidth: number,
+  sourceHeight: number,
+  outputWidth: number,
+  outputHeight: number
 ): CachedFrameRenderer => {
-  const clone = root.cloneNode(true) as HTMLElement
-  const liveNodes = [root, ...Array.from(root.querySelectorAll('*'))]
-  const cloneNodes = [clone, ...Array.from(clone.querySelectorAll('*'))]
-  if (liveNodes.length !== cloneNodes.length) {
-    throw new Error('动态分镜缓存树与播放树不一致')
-  }
-
-  const baseStyles = liveNodes.map(serializeComputedStyle)
-  const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
-  const context = canvas.getContext('2d', { alpha: true })
-  if (!context) throw new Error('无法创建分镜录制画布')
-
-  const capture = async () => {
-    for (let index = 0; index < liveNodes.length; index++) {
-      const inlineStyle = liveNodes[index].getAttribute('style')
-      cloneNodes[index].setAttribute(
-        'style',
-        inlineStyle ? `${baseStyles[index]};${inlineStyle}` : baseStyles[index]
-      )
-    }
-
-    const markup = new XMLSerializer().serializeToString(clone)
-    const svg = [
-      `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
-      `<foreignObject x="0" y="0" width="${width}" height="${height}">`,
-      markup,
-      '</foreignObject>',
-      '</svg>',
-    ].join('')
-    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }))
-
-    try {
-      const image = new Image()
-      image.decoding = 'sync'
-      image.src = url
-      await image.decode()
-      context.clearRect(0, 0, width, height)
-      context.drawImage(image, 0, 0, width, height)
-      return canvas
-    } finally {
-      URL.revokeObjectURL(url)
-    }
-  }
+  let disposed = false
 
   return {
-    capture,
+    prepare: async () => {
+      if (disposed) throw new Error('动态分镜缓存渲染器已释放')
+      const canvas = await captureDomCanvas(root, {
+        width: sourceWidth,
+        height: sourceHeight,
+        canvasWidth: outputWidth,
+        canvasHeight: outputHeight,
+        pixelRatio: 1,
+        cacheBust: false,
+        skipFonts: true,
+        skipAutoScale: true,
+        includeStyleProperties: CAPTURE_STYLE_PROPERTIES,
+      })
+      return preparedCanvasFrame(canvas, outputWidth, outputHeight)
+    },
     dispose: () => {
-      canvas.width = 1
-      canvas.height = 1
+      disposed = true
     },
   }
 }
 
-const captureCompatibleCanvas = async (root: HTMLElement, width: number, height: number) => {
+const captureCompatibleCanvas = async (
+  root: HTMLElement,
+  sourceWidth: number,
+  sourceHeight: number,
+  outputWidth: number,
+  outputHeight: number
+) => {
   return html2canvas(root, {
     backgroundColor: null,
-    scale: 1,
+    scale: outputWidth / sourceWidth,
     useCORS: true,
     allowTaint: false,
     logging: false,
-    width,
-    height,
-    windowWidth: width,
-    windowHeight: height,
+    width: sourceWidth,
+    height: sourceHeight,
+    windowWidth: sourceWidth,
+    windowHeight: sourceHeight,
     scrollX: 0,
     scrollY: 0,
     imageTimeout: 15000,
@@ -269,12 +333,92 @@ const captureCompatibleCanvas = async (root: HTMLElement, width: number, height:
   })
 }
 
-const getEncoderConfig = async (width: number, height: number, fps: number) => {
+const preparedCanvasFrame = (
+  canvas: HTMLCanvasElement,
+  outputWidth: number,
+  outputHeight: number
+): PreparedFrame => {
+  let disposed = false
+  return {
+    draw: context => {
+      if (disposed) throw new Error('分镜帧已释放')
+      context.clearRect(0, 0, outputWidth, outputHeight)
+      context.drawImage(canvas, 0, 0, outputWidth, outputHeight)
+    },
+    dispose: () => {
+      if (disposed) return
+      disposed = true
+      canvas.width = 1
+      canvas.height = 1
+    },
+  }
+}
+
+type EncoderAcceleration = 'prefer-software' | 'no-preference' | 'prefer-hardware'
+
+interface EncoderStrategy {
+  acceleration: EncoderAcceleration
+  label: string
+}
+
+const ENCODER_STRATEGIES: EncoderStrategy[] = [
+  { acceleration: 'prefer-software', label: '软件兼容编码' },
+  { acceleration: 'no-preference', label: '系统默认编码' },
+  { acceleration: 'prefer-hardware', label: '硬件编码' },
+]
+
+class RecoverableEncoderError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'RecoverableEncoderError'
+  }
+}
+
+class RecoverableCaptureError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'RecoverableCaptureError'
+  }
+}
+
+const errorText = (error: unknown) => {
+  if (error instanceof Error) return error.message
+  if (error instanceof Event) return `资源${error.type || '捕获'}事件`
+  if (typeof error === 'string') return error
+  try {
+    return JSON.stringify(error)
+  } catch {
+    return String(error)
+  }
+}
+
+const waitForDocumentVisible = async (index: number, total: number) => {
+  if (document.visibilityState === 'visible') return
+
+  exportProgress.value = `${index + 1}/${total} · 已暂停`
+  setStatus('录制已暂停：请让 PPTist 标签页保持在前台', 'working')
+  await new Promise<void>(resolve => {
+    const handleVisibility = () => {
+      if (document.visibilityState !== 'visible') return
+      document.removeEventListener('visibilitychange', handleVisibility)
+      resolve()
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+  })
+  setStatus('页面已回到前台，继续录制动态分镜', 'working')
+}
+
+const getEncoderConfig = async (
+  width: number,
+  height: number,
+  fps: number,
+  strategy: EncoderStrategy
+) => {
   if (!('VideoEncoder' in globalThis) || !('VideoFrame' in globalThis)) {
     throw new Error('当前浏览器不支持 WebCodecs，请使用最新版 Chrome 或 Edge')
   }
 
-  const bitrate = Math.round(Math.min(20_000_000, Math.max(2_000_000, width * height * fps * 0.14)))
+  const bitrate = Math.round(Math.min(16_000_000, Math.max(1_800_000, width * height * fps * 0.1)))
   const codecCandidates = ['avc1.420028', 'avc1.4d4028', 'avc1.640028']
 
   for (const codec of codecCandidates) {
@@ -285,27 +429,34 @@ const getEncoderConfig = async (width: number, height: number, fps: number) => {
       bitrate,
       framerate: fps,
       latencyMode: 'quality',
-      hardwareAcceleration: 'prefer-hardware',
+      hardwareAcceleration: strategy.acceleration,
       avc: { format: 'avc' },
     }
-    const support = await VideoEncoder.isConfigSupported(config)
-    if (support.supported) return config
+    try {
+      const support = await VideoEncoder.isConfigSupported(config)
+      if (support.supported) return config
+    } catch {
+      // Try the next AVC profile before changing acceleration strategy.
+    }
   }
 
-  throw new Error(`浏览器无法编码 ${width}×${height} H.264 视频`)
+  throw new RecoverableEncoderError(
+    `浏览器不支持 ${strategy.label} 的 ${width}×${height} H.264 配置`
+  )
 }
 
-const encodeSlide = async (
+const encodeSlideAttempt = async (
   slide: Slide,
   index: number,
   total: number,
   width: number,
   height: number,
-  fps: number
+  encodeWidth: number,
+  encodeHeight: number,
+  fps: number,
+  frameStep: number,
+  strategy: EncoderStrategy
 ) => {
-  captureSlide.value = slide
-  await nextTick()
-
   const stage = captureDeckRef.value
   const root = stage?.querySelector<HTMLElement>('.screen-slide')
   if (!stage || !root) throw new Error(`第 ${index + 1} 页录制舞台未挂载`)
@@ -321,96 +472,171 @@ const encodeSlide = async (
     target,
     video: {
       codec: 'avc',
-      width,
-      height,
+      width: encodeWidth,
+      height: encodeHeight,
       frameRate: fps,
     },
     fastStart: 'in-memory',
     firstTimestampBehavior: 'offset',
   })
 
+  const renderCanvas = document.createElement('canvas')
+  renderCanvas.width = encodeWidth
+  renderCanvas.height = encodeHeight
+  const renderContext = renderCanvas.getContext('2d', { alpha: true })
+  if (!renderContext) throw new Error('无法创建视频编码画布')
+
   let encoderError: Error | null = null
+  let muxerError: Error | null = null
   const encoder = new VideoEncoder({
     output: (chunk, metadata) => {
       try {
         muxer.addVideoChunk(chunk, metadata)
       } catch (error) {
-        encoderError = error instanceof Error ? error : new Error(String(error))
+        if (!muxerError) {
+          muxerError = error instanceof Error ? error : new Error(String(error))
+        }
       }
     },
     error: error => {
-      encoderError = error
+      if (!encoderError) encoderError = error
     },
   })
-  encoder.configure(await getEncoderConfig(width, height, fps))
 
-  const timeline = slide.motion?.version === 1
-    ? createMotionTimeline(root, slide.motion, { paused: true })
-    : null
+  const encoderFailure = (phase: string, fallback?: unknown) => {
+    const cause = encoderError || fallback
+    const detail = cause ? `：${errorText(cause)}` : ''
+    return new RecoverableEncoderError(
+      `第 ${index + 1} 页${strategy.label}在${phase}阶段被浏览器关闭${detail}`
+    )
+  }
+
+  const assertEncoderReady = (phase: string) => {
+    if (muxerError) throw muxerError
+    if (encoderError || encoder.state !== 'configured') {
+      throw encoderFailure(phase)
+    }
+  }
+
+  let timeline: ReturnType<typeof createMotionTimeline> | null = null
   const timeScale = Math.max(0.05, Math.abs(Number(slide.motion?.timeScale) || 1))
   let cachedRenderer: CachedFrameRenderer | null = null
-  let staticCanvas: HTMLCanvasElement | null = null
+  let staticFrame: PreparedFrame | null = null
 
   try {
+    try {
+      encoder.configure(await getEncoderConfig(encodeWidth, encodeHeight, fps, strategy))
+    } catch (error) {
+      if (error instanceof RecoverableEncoderError) throw error
+      throw encoderFailure('初始化', error)
+    }
+
+    timeline = slide.motion?.version === 1
+      ? createMotionTimeline(root, slide.motion, { paused: true })
+      : null
+
     if (captureBackend === 'cached') {
       try {
-        cachedRenderer = createCachedFrameRenderer(root, width, height)
+        cachedRenderer = createCachedFrameRenderer(
+          root,
+          width,
+          height,
+          encodeWidth,
+          encodeHeight
+        )
       } catch (error) {
         captureBackend = 'compatible'
         console.warn('Cached storyboard renderer unavailable; switching to html2canvas:', error)
       }
     }
 
-    for (let frameIndex = 0; frameIndex < frameCount; frameIndex++) {
-      if (encoderError) throw encoderError
+    const waitForEncoderCapacity = async () => {
       while (encoder.encodeQueueSize > 6) {
-        await new Promise<void>(resolve => setTimeout(resolve, 0))
-        if (encoderError) throw encoderError
+        await new Promise<void>(resolve => setTimeout(resolve, 8))
+        assertEncoderReady('等待输出')
       }
+    }
 
-      const sampleTime = Math.min(duration, frameIndex / fps)
-      if (timeline) {
-        timeline.totalTime(sampleTime * timeScale, true)
-        await nextFrame()
-      }
+    const encodePreparedFrame = async (prepared: PreparedFrame, frameIndex: number) => {
+      await waitForDocumentVisible(index, total)
+      assertEncoderReady('帧编码')
+      await waitForEncoderCapacity()
+      prepared.draw(renderContext)
 
-      if (!timeline && staticCanvas) {
-        // Static pages only need one DOM rasterization; the canvas can be encoded repeatedly.
-      } else {
-        if (cachedRenderer && captureBackend === 'cached') {
-          try {
-            staticCanvas = await cachedRenderer.capture()
-          } catch (error) {
-            captureBackend = 'compatible'
-            cachedRenderer.dispose()
-            cachedRenderer = null
-            console.warn('Cached storyboard capture failed; switching to html2canvas:', error)
-            staticCanvas = await captureCompatibleCanvas(root, width, height)
-          }
-        } else {
-          staticCanvas = await captureCompatibleCanvas(root, width, height)
-        }
-      }
-
-      exportProgress.value = `${index + 1}/${total} · ${frameIndex + 1}/${frameCount}`
-      const frame = new VideoFrame(staticCanvas, {
+      const frame = new VideoFrame(renderCanvas, {
         timestamp: Math.round(frameIndex * 1_000_000 / fps),
         duration: frameDurationUs,
       })
-      encoder.encode(frame, {
-        keyFrame: frameIndex === 0 || frameIndex % Math.max(1, fps * 2) === 0,
-      })
-      frame.close()
+      try {
+        assertEncoderReady('提交帧')
+        encoder.encode(frame, {
+          keyFrame: frameIndex === 0 || frameIndex % Math.max(1, fps * 2) === 0,
+        })
+      } catch (error) {
+        if (error instanceof RecoverableEncoderError) throw error
+        throw encoderFailure('提交帧', error)
+      } finally {
+        frame.close()
+      }
+      exportProgress.value = `${index + 1}/${total} · ${frameIndex + 1}/${frameCount}`
     }
 
-    await encoder.flush()
-    if (encoderError) throw encoderError
+    const prepareCurrentFrame = async (): Promise<PreparedFrame> => {
+      if (cachedRenderer && captureBackend === 'cached') {
+        try {
+          return await cachedRenderer.prepare()
+        } catch (error) {
+          throw new RecoverableCaptureError(
+            `第 ${index + 1} 页缓存捕获失败：${errorText(error)}`
+          )
+        }
+      }
+      return preparedCanvasFrame(
+        await captureCompatibleCanvas(root, width, height, encodeWidth, encodeHeight),
+        encodeWidth,
+        encodeHeight
+      )
+    }
+
+    if (!timeline) {
+      staticFrame = await prepareCurrentFrame()
+      for (let frameIndex = 0; frameIndex < frameCount; frameIndex++) {
+        await encodePreparedFrame(staticFrame, frameIndex)
+      }
+    }
+    else {
+      for (let frameIndex = 0; frameIndex < frameCount; frameIndex += frameStep) {
+        await waitForDocumentVisible(index, total)
+        assertEncoderReady('准备动画画面')
+        const sampleTime = Math.min(duration, frameIndex / fps)
+        timeline.totalTime(sampleTime * timeScale, true)
+        const prepared = await prepareCurrentFrame()
+        try {
+          const frameEnd = Math.min(frameCount, frameIndex + frameStep)
+          for (let outputFrame = frameIndex; outputFrame < frameEnd; outputFrame++) {
+            await encodePreparedFrame(prepared, outputFrame)
+          }
+        } finally {
+          prepared.dispose()
+        }
+      }
+    }
+
+    try {
+      await encoder.flush()
+    } catch (error) {
+      throw encoderFailure('刷新输出', error)
+    }
+    assertEncoderReady('完成输出')
     muxer.finalize()
   } finally {
     disposeMotionTimeline(timeline)
     cachedRenderer?.dispose()
+    staticFrame?.dispose()
     if (encoder.state !== 'closed') encoder.close()
-    staticCanvas = null
+    renderCanvas.width = 1
+    renderCanvas.height = 1
+    await new Promise<void>(resolve => setTimeout(resolve, 40))
   }
 
   return {
@@ -419,10 +645,82 @@ const encodeSlide = async (
   }
 }
 
+const encodeSlide = async (
+  slide: Slide,
+  index: number,
+  total: number,
+  width: number,
+  height: number,
+  encodeWidth: number,
+  encodeHeight: number,
+  fps: number,
+  frameStep: number
+) => {
+  let strategyIndex = 0
+  let retriedCompatibleCapture = false
+  let lastError: unknown = null
+
+  while (strategyIndex < ENCODER_STRATEGIES.length) {
+    await waitForDocumentVisible(index, total)
+    captureSlide.value = null
+    await nextTick()
+    captureRenderKey.value += 1
+    captureSlide.value = slide
+    await nextTick()
+
+    const strategy = ENCODER_STRATEGIES[strategyIndex]
+    try {
+      return await encodeSlideAttempt(
+        slide,
+        index,
+        total,
+        width,
+        height,
+        encodeWidth,
+        encodeHeight,
+        fps,
+        frameStep,
+        strategy
+      )
+    } catch (error) {
+      lastError = error
+      if (error instanceof RecoverableCaptureError) {
+        console.warn('Storyboard capture attempt failed:', error)
+        if (!retriedCompatibleCapture) {
+          retriedCompatibleCapture = true
+          captureBackend = 'compatible'
+          setStatus(
+            `第 ${index + 1}/${total} 页切换到兼容画面捕获后重试：${errorText(error)}`,
+            'working'
+          )
+          continue
+        }
+      }
+      if (error instanceof RecoverableEncoderError) {
+        strategyIndex += 1
+        if (strategyIndex < ENCODER_STRATEGIES.length) {
+          setStatus(
+            `第 ${index + 1}/${total} 页编码器被浏览器关闭，正在使用${ENCODER_STRATEGIES[strategyIndex].label}重试`,
+            'working'
+          )
+          await new Promise<void>(resolve => setTimeout(resolve, 200))
+          continue
+        }
+      }
+      throw error
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(`第 ${index + 1} 页视频编码失败`)
+}
+
 const captureSlides = async () => {
   captureBackend = 'cached'
   const width = Math.round(viewportSize.value)
   const height = Math.round(viewportSize.value * viewportRatio.value)
+  const captureDimensions = getCaptureDimensions(width, height)
   const fps = getCaptureFps()
   let positionStart = 0
   const clips = []
@@ -436,7 +734,10 @@ const captureSlides = async () => {
         slides.value.length,
         width,
         height,
-        fps
+        captureDimensions.width,
+        captureDimensions.height,
+        fps,
+        captureDimensions.frameStep
       )
       clips.push({
         id: `pptist-scene-${index + 1}`,
@@ -459,6 +760,10 @@ const captureSlides = async () => {
     transfer,
     width,
     height,
+    captureWidth: captureDimensions.width,
+    captureHeight: captureDimensions.height,
+    captureScale: captureDimensions.scale,
+    frameStep: captureDimensions.frameStep,
     fps,
     duration: positionStart,
   }
@@ -503,7 +808,7 @@ const sendStoryboard = async (autoRender: boolean) => {
       },
     }, result.transfer)
     setStatus(
-      `已发送 ${result.clips.length} 个动态分镜 · ${result.width}×${result.height} · ${result.fps} FPS`,
+      `已发送 ${result.clips.length} 个动态分镜 · 输出 ${result.width}×${result.height} · 采样 ${result.captureWidth}×${result.captureHeight} · ${result.fps} FPS`,
       'working'
     )
   } catch (error) {
@@ -624,7 +929,8 @@ onUnmounted(() => window.removeEventListener('message', handleClipMessage))
   color: #aaaab3;
   font-size: 11px;
 
-  input {
+  input,
+  select {
     width: 54px;
     height: 28px;
     padding: 0 7px;
@@ -632,6 +938,9 @@ onUnmounted(() => window.removeEventListener('message', handleClipMessage))
     background: #19191d;
     border: 1px solid #45454d;
     border-radius: 5px;
+  }
+  select {
+    width: 164px;
   }
 }
 .clip-status {
