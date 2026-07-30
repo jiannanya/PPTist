@@ -7,6 +7,7 @@
       left: elementInfo.left + 'px',
       width: elementInfo.width + 'px',
       height: elementInfo.height + 'px',
+      opacity: elementInfo.opacity,
     }"
   >
     <div

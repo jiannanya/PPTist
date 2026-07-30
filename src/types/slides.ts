@@ -295,6 +295,7 @@ export interface PPTImageElement extends PPTBaseElement {
   type: 'image'
   fixedRatio: boolean
   src: string
+  opacity?: number
   outline?: PPTElementOutline
   filters?: ImageElementFilters
   clip?: ImageElementClip
