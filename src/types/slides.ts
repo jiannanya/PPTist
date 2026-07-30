@@ -766,6 +766,12 @@ export interface SlideMotionTween {
 export interface SlideMotion {
   version: 1
   autoplay?: boolean
+  /**
+   * Turn to the next slide when this motion timeline completes.
+   * The presentation host owns the navigation so audience windows only
+   * follow the existing synchronization channel and never double-advance.
+   */
+  autoAdvance?: boolean
   duration?: number
   fps?: number
   repeat?: number

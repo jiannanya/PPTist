@@ -42,6 +42,7 @@ const props = defineProps<{
   animationIndex: number
   turnSlideToId: (id: string) => void
   manualExitFullscreen: () => void
+  onMotionComplete?: (slideId: string) => void
 }>()
 
 const { viewportRatio, viewportSize } = storeToRefs(useSlidesStore())
@@ -55,7 +56,12 @@ provide(injectKeySlideId, slideId)
 const slideRef = useTemplateRef<HTMLElement>('slideRef')
 const motion = computed(() => props.slide.motion)
 const active = computed(() => props.active)
-useGsapSlideMotion(slideRef, motion, active)
+useGsapSlideMotion(
+  slideRef,
+  motion,
+  active,
+  () => props.onMotionComplete?.(props.slide.id)
+)
 </script>
 
 <style lang="scss" scoped>

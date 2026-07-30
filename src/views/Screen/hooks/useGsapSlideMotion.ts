@@ -54,7 +54,8 @@ const decodeMotionImages = async (root: HTMLElement) => {
 export default (
   slideRef: Readonly<Ref<HTMLElement | null>>,
   motionRef: Readonly<Ref<SlideMotion | undefined>>,
-  activeRef: Readonly<Ref<boolean>>
+  activeRef: Readonly<Ref<boolean>>,
+  onMotionComplete?: () => void
 ) => {
   let matchMedia: ReturnType<typeof gsap.matchMedia> | null = null
   let initialStateContext: gsap.Context | null = null
@@ -130,7 +131,15 @@ export default (
           }
         }
         else {
-          timeline = createMotionTimeline(root, motion)
+          timeline = createMotionTimeline(root, motion, {
+            onComplete: () => {
+              if (
+                token === buildToken &&
+                activeRef.value &&
+                motion.autoAdvance
+              ) onMotionComplete?.()
+            },
+          })
         }
 
         const readyTimeline = timeline

@@ -27,6 +27,7 @@
           :animationIndex="animationIndex"
           :turnSlideToId="turnSlideToId"
           :manualExitFullscreen="manualExitFullscreen"
+          :onMotionComplete="handleMotionComplete"
           @wheel="($event: WheelEvent) => mousewheelListener($event)"
           @touchstart="($event: TouchEvent) => touchStartListener($event)"
           @touchend="($event: TouchEvent) => touchEndListener($event)"
@@ -115,6 +116,7 @@ const {
   turnNextSlide,
   turnSlideToIndex,
   turnSlideToId,
+  execNext,
   animationIndex,
   laserPen,
   broadcastExit,
@@ -134,6 +136,11 @@ const currentSlideRemark = computed(() => {
 const openAudienceView = () => {
   manualExitFullscreen()
   window.open(`${location.origin}${location.pathname}?mode=audience`, 'pptist-audience', 'popup')
+}
+
+const handleMotionComplete = (slideId: string) => {
+  if (slides.value[slideIndex.value]?.id !== slideId) return
+  execNext()
 }
 
 const exitScreening = () => {

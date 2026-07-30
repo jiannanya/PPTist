@@ -32,6 +32,7 @@
           :animationIndex="animationIndex"
           :turnSlideToId="turnSlideToId"
           :manualExitFullscreen="manualExitFullscreen"
+          :onMotionComplete="onMotionComplete"
         />
       </div>
     </div>
@@ -53,6 +54,7 @@ const props = defineProps<{
   animationIndex: number
   turnSlideToId: (id: string) => void
   manualExitFullscreen: () => void
+  onMotionComplete?: (slideId: string) => void
 }>()
 
 const { slideIndex, viewportSize } = storeToRefs(useSlidesStore())
