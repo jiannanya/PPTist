@@ -50,12 +50,13 @@ import useEmbedRender from './useEmbedRender'
 const props = defineProps<{
   elementInfo: PPTEmbedElement
   target?: string
+  active?: boolean
 }>()
 
 const liveRef = ref<HTMLElement | null>(null)
 const elementInfo = computed(() => props.elementInfo)
 const { liveActive } = useEmbedRender(elementInfo, liveRef, {
-  enabled: () => props.target !== 'thumbnail',
+  enabled: () => props.target !== 'thumbnail' && props.active !== false,
 })
 </script>
 

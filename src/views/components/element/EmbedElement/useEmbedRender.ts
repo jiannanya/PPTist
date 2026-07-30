@@ -28,6 +28,7 @@ export default function useEmbedRender(
       handle.destroy()
       handle = null
     }
+    liveRef.value?.replaceChildren()
     liveActive.value = false
   }
 
@@ -47,6 +48,7 @@ export default function useEmbedRender(
 
   watch(() => elementInfo.value.vizKind, mount)
   watch(() => elementInfo.value.spec, mount, { deep: true })
+  watch(() => options.enabled?.() ?? true, mount, { flush: 'post' })
   watch(() => [elementInfo.value.width, elementInfo.value.height], () => {
     if (handle && handle.resize) handle.resize(elementInfo.value.width, elementInfo.value.height)
     else mount()

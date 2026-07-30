@@ -32,6 +32,7 @@ const props = defineProps<{
   textColor?: string
   lineColor?: string
   options?: ChartOptions
+  active?: boolean
 }>()
 
 let chart: echarts.ECharts | null = null
@@ -49,7 +50,7 @@ const themeColors = computed(() => {
   return colors
 })
 
-const updateOption = () => {
+const updateOption = (animate = props.active !== false) => {
   const option = getChartOption({
     type: props.type,
     data: props.data,
@@ -59,7 +60,7 @@ const updateOption = () => {
     lineSmooth: props.options?.lineSmooth || false,
     stack: props.options?.stack || false,
   })
-  if (option) chart!.setOption(option, true)
+  if (option) chart!.setOption({ ...option, animation: animate }, true)
 }
 
 onMounted(() => {
@@ -71,10 +72,15 @@ onMounted(() => {
   resizeObserver.observe(chartRef.value!)
 })
 
-watch(() => props.type, updateOption)
-watch(() => props.data, updateOption)
-watch(() => props.themeColors, updateOption)
-watch(() => props.textColor, updateOption)
+watch(() => props.type, () => updateOption())
+watch(() => props.data, () => updateOption())
+watch(() => props.themeColors, () => updateOption())
+watch(() => props.textColor, () => updateOption())
+watch(() => props.active, active => {
+  if (!chart) return
+  chart.clear()
+  updateOption(active !== false)
+})
 </script>
 
 <style lang="scss" scoped>

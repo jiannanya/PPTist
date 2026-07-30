@@ -16,6 +16,7 @@
         :elementInfo="element"
         :elementIndex="index + 1"
         :animationIndex="animationIndex"
+        :active="active"
         :turnSlideToId="turnSlideToId"
         :manualExitFullscreen="manualExitFullscreen"
       />

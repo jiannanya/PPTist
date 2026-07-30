@@ -15,7 +15,7 @@
   >
     <component
       :is="currentElementComponent"
-      :elementInfo="elementInfo"
+      v-bind="currentElementProps"
     ></component>
   </div>
 </template>
@@ -41,6 +41,7 @@ const props = defineProps<{
   elementInfo: PPTElement
   elementIndex: number
   animationIndex: number
+  active: boolean
   turnSlideToId: (id: string) => void
   manualExitFullscreen: () => void
 }>()
@@ -60,6 +61,13 @@ const currentElementComponent = computed<unknown>(() => {
   }
   return elementTypeMap[props.elementInfo.type] || null
 })
+
+const currentElementProps = computed(() => ({
+  elementInfo: props.elementInfo,
+  ...(props.elementInfo.type === ElementTypes.CHART || props.elementInfo.type === ElementTypes.EMBED
+    ? { active: props.active }
+    : {}),
+}))
 
 const { formatedAnimations, theme } = storeToRefs(useSlidesStore())
 

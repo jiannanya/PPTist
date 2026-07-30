@@ -32,6 +32,7 @@
           :textColor="elementInfo.textColor"
           :lineColor="elementInfo.lineColor"
           :options="elementInfo.options"
+          :active="active"
         />
       </div>
     </div>
@@ -47,6 +48,7 @@ import Chart from './Chart.vue'
 defineProps<{
   elementInfo: PPTChartElement
   target?: string
+  active?: boolean
 }>()
 </script>
 

@@ -123,7 +123,10 @@ export const calculateMotionStepTimings = (motion?: SlideMotion): MotionStepTimi
 
   motion.steps.forEach((step, index) => {
     const vars = getStepVars(step)
-    const tweenDuration = Math.max(0, Number(vars?.duration) || defaultDuration)
+    const explicitDuration = vars?.duration
+    const tweenDuration = step.method === 'set'
+      ? 0
+      : Math.max(0, explicitDuration == null ? defaultDuration : Number(explicitDuration) || 0)
     const repeat = Math.max(0, Number(vars?.repeat) || 0)
     const duration = tweenDuration * (repeat + 1)
     const position = step.position
