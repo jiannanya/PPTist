@@ -61,8 +61,7 @@ export default (
   let timeline: gsap.core.Timeline | null = null
   let buildToken = 0
 
-  const teardown = () => {
-    buildToken += 1
+  const reset = () => {
     disposeMotionTimeline(timeline)
     timeline = null
     matchMedia?.revert()
@@ -71,23 +70,38 @@ export default (
     initialStateContext = null
   }
 
+  const teardown = () => {
+    buildToken += 1
+    reset()
+  }
+
   const build = async () => {
     const token = ++buildToken
-    disposeMotionTimeline(timeline)
-    matchMedia?.revert()
-    matchMedia = null
-    timeline = null
-    initialStateContext?.revert()
-    initialStateContext = null
 
-    if (!activeRef.value || !motionRef.value) return
+    // `active` changes at the START of a CSS page transition, while the
+    // outgoing slide remains visible as `.last` for up to 750ms. Reverting
+    // GSAP here would remove every frame-sequence autoAlpha style and expose
+    // all stacked SVG frames. Freeze the exact current visual state instead;
+    // reset only when the slide is reactivated or actually unmounted.
+    if (!activeRef.value) {
+      timeline?.pause()
+      return
+    }
 
+    timeline?.pause()
     await nextTick()
     if (token !== buildToken || !activeRef.value) return
 
     const root = slideRef.value
     const motion = motionRef.value
-    if (!root || !motion || motion.version !== 1) return
+    if (!root || !motion || motion.version !== 1) {
+      reset()
+      return
+    }
+
+    // Revert the frozen state and synchronously prime frame 0 in the same
+    // microtask, so a re-entering slide never paints all stacked frames.
+    reset()
 
     initialStateContext = gsap.context(() => {
       primeMotionInitialState(root, motion)
