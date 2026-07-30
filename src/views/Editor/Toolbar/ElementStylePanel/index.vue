@@ -20,7 +20,9 @@ import LatexStylePanel from './LatexStylePanel.vue'
 import VideoStylePanel from './VideoStylePanel.vue'
 import AudioStylePanel from './AudioStylePanel.vue'
 
-const panelMap = {
+// Keyed by element type; a type without a dedicated style panel (e.g. `embed`)
+// falls through to null below — no authoring panel, which is fine.
+const panelMap: { [key: string]: unknown } = {
   [ElementTypes.TEXT]: TextStylePanel,
   [ElementTypes.IMAGE]: ImageStylePanel,
   [ElementTypes.SHAPE]: ShapeStylePanel,

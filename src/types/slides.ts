@@ -32,6 +32,7 @@ export const enum ElementTypes {
   LATEX = 'latex',
   VIDEO = 'video',
   AUDIO = 'audio',
+  EMBED = 'embed',
 }
 
 /**
@@ -666,7 +667,33 @@ export interface PPTAudioElement extends PPTBaseElement {
 }
 
 
-export type PPTElement = PPTTextElement | PPTImageElement | PPTShapeElement | PPTLineElement | PPTChartElement | PPTTableElement | PPTLatexElement | PPTVideoElement | PPTAudioElement
+/**
+ * 嵌入可视化元素（图表 / 手绘 / 3D 的“活”渲染）
+ *
+ * type: 元素类型（embed）
+ *
+ * vizKind: 渲染器种类，由本地可信注册表解析（禁止在 .pptist 内存放可执行 JS）
+ *
+ * spec: 传给注册表渲染器的、经过消毒的纯数据描述（如 echarts option、rough ops）
+ *
+ * poster: 烘焙好的静态回退帧（data: URI）。缩略图、无渲染器、以及导出无法逐帧
+ *         定格时都用它兜底，保证永不空白。
+ *
+ * fill?: 背景填充色
+ *
+ * outline?: 边框
+ */
+export interface PPTEmbedElement extends PPTBaseElement {
+  type: 'embed'
+  vizKind: 'd3' | 'echarts' | 'rough' | 'three' | 'excalidraw'
+  spec: { [key: string]: any }
+  poster: string
+  fill?: string
+  outline?: PPTElementOutline
+}
+
+
+export type PPTElement = PPTTextElement | PPTImageElement | PPTShapeElement | PPTLineElement | PPTChartElement | PPTTableElement | PPTLatexElement | PPTVideoElement | PPTAudioElement | PPTEmbedElement
 
 export type AnimationType = 'in' | 'out' | 'attention'
 export type AnimationTrigger = 'click' | 'meantime' | 'auto'

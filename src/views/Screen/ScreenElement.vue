@@ -35,6 +35,7 @@ import BaseTableElement from '@/views/components/element/TableElement/BaseTableE
 import BaseLatexElement from '@/views/components/element/LatexElement/BaseLatexElement.vue'
 import ScreenVideoElement from '@/views/components/element/VideoElement/ScreenVideoElement.vue'
 import ScreenAudioElement from '@/views/components/element/AudioElement/ScreenAudioElement.vue'
+import BaseEmbedElement from '@/views/components/element/EmbedElement/BaseEmbedElement.vue'
 
 const props = defineProps<{
   elementInfo: PPTElement
@@ -55,6 +56,7 @@ const currentElementComponent = computed<unknown>(() => {
     [ElementTypes.LATEX]: BaseLatexElement,
     [ElementTypes.VIDEO]: ScreenVideoElement,
     [ElementTypes.AUDIO]: ScreenAudioElement,
+    [ElementTypes.EMBED]: BaseEmbedElement,
   }
   return elementTypeMap[props.elementInfo.type] || null
 })
