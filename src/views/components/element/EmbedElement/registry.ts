@@ -34,8 +34,20 @@ const renderers: { [vizKind: string]: Renderer } = {
     const option = spec && spec.option
     if (!option) return null
     const chart = echarts.init(mount, null, { renderer: 'svg', width, height })
-    // SSR bake used animation:false; keep parity so the live frame == the poster.
-    chart.setOption({ ...option, animation: false })
+    // Animate the chart's INTERNAL parts on mount (bars rise, line draws on, pie sweeps)
+    // for a lively editor/presentation preview. This is a presentation-time flourish:
+    // Clip-JS export rasterizes a paused timeline, so it falls back to the static baked
+    // `poster` (a completed chart — never blank). For internal animation that must appear
+    // IN THE EXPORTED VIDEO, author the chart with echartsSvgFrames() + sequence() instead.
+    // Set spec.liveAnimation === false to force a static live frame (poster parity).
+    const animate = spec.liveAnimation !== false
+    chart.setOption({
+      ...option,
+      animation: animate,
+      animationDuration: 850,
+      animationDurationUpdate: 500,
+      animationEasing: 'cubicOut',
+    })
     return {
       destroy: () => chart.dispose(),
       resize: (w, h) => chart.resize({ width: w, height: h }),
