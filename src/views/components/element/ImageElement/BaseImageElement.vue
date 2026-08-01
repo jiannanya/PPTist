@@ -24,7 +24,7 @@
 
         <div class="image-content" :style="{ clipPath: clipShape.style }">
           <img 
-            :src="elementInfo.src" 
+            :src="resolvedSrc" 
             :draggable="false" 
             :style="{
               top: imgPosition.top,
@@ -33,6 +33,7 @@
               height: imgPosition.height,
               filter: filter,
             }" 
+            @error="handleImageError"
             alt=""
           />
           <div class="color-mask"
@@ -54,6 +55,7 @@ import useElementShadow from '@/views/components/element/hooks/useElementShadow'
 import useElementFlip from '@/views/components/element/hooks/useElementFlip'
 import useClipImage from './useClipImage'
 import useFilter from './useFilter'
+import useResilientImageSource from './useResilientImageSource'
 
 import ImageOutline from './ImageOutline/index.vue'
 
@@ -73,6 +75,9 @@ const { clipShape, imgPosition } = useClipImage(imageElement)
 
 const filters = computed(() => props.elementInfo.filters)
 const { filter } = useFilter(filters)
+
+const source = computed(() => props.elementInfo.src)
+const { resolvedSrc, handleImageError } = useResilientImageSource(source)
 </script>
 
 <style lang="scss" scoped>

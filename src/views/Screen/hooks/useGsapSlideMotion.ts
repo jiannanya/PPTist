@@ -25,30 +25,120 @@ const primeMotionInitialState = (root: HTMLElement, motion: SlideMotion) => {
   })
 }
 
+const nextPaint = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+
+const waitForImageEvent = (image: HTMLImageElement, timeoutMs = 1800) => (
+  new Promise<boolean>(resolve => {
+    let timer = 0
+    const cleanup = () => {
+      image.removeEventListener('load', done)
+      image.removeEventListener('error', done)
+      window.clearTimeout(timer)
+    }
+    const done = () => {
+      cleanup()
+      resolve(image.complete && image.naturalWidth > 0)
+    }
+    image.addEventListener('load', done, { once: true })
+    image.addEventListener('error', done, { once: true })
+    timer = window.setTimeout(done, timeoutMs)
+  })
+)
+
+const decodeMotionImage = async (image: HTMLImageElement) => {
+  if (image.complete && image.naturalWidth > 0) return true
+  const initialSrc = image.currentSrc || image.src
+
+  if (typeof image.decode === 'function') {
+    try {
+      await image.decode()
+    }
+    catch {
+      // Image components retry rejected data URIs through Blob URLs. Wait for
+      // that reactive source replacement before deciding that the frame failed.
+    }
+  }
+  if (image.complete && image.naturalWidth > 0) return true
+
+  await nextTick()
+  await nextPaint()
+  const retrySrc = image.currentSrc || image.src
+  if (retrySrc !== initialSrc && typeof image.decode === 'function') {
+    try {
+      await image.decode()
+    }
+    catch {
+      // The nearest successfully decoded sequence frame is used below.
+    }
+  }
+  if (image.complete && image.naturalWidth > 0) return true
+  if (!image.complete || retrySrc !== initialSrc) return waitForImageEvent(image)
+  return false
+}
+
+const decodeInBatches = async (images: HTMLImageElement[], concurrency = 6) => {
+  const decoded = Array<boolean>(images.length).fill(false)
+  let cursor = 0
+  const workers = Array.from(
+    { length: Math.min(concurrency, images.length) },
+    async () => {
+      while (cursor < images.length) {
+        const index = cursor++
+        decoded[index] = await decodeMotionImage(images[index])
+      }
+    }
+  )
+  await Promise.all(workers)
+  return decoded
+}
+
+const sequenceFrameInfo = (image: HTMLImageElement) => {
+  const elementId = image.closest<HTMLElement>('.screen-element')?.dataset.elementId || ''
+  const match = elementId.match(/^(.*)-f(\d+)$/)
+  if (!match) return null
+  return { key: match[1], frame: Number(match[2]) }
+}
+
+const recoverFailedSequenceFrames = async (images: HTMLImageElement[], decoded: boolean[]) => {
+  const groups = new Map<string, Array<{ image: HTMLImageElement, index: number, frame: number }>>()
+  images.forEach((image, index) => {
+    const info = sequenceFrameInfo(image)
+    if (!info) return
+    const group = groups.get(info.key) || []
+    group.push({ image, index, frame: info.frame })
+    groups.set(info.key, group)
+  })
+
+  for (const group of groups.values()) {
+    const healthy = group.filter(item => decoded[item.index] && item.image.naturalWidth > 0)
+    if (!healthy.length) continue
+
+    for (const failed of group.filter(item => !decoded[item.index] || item.image.naturalWidth <= 0)) {
+      const nearest = healthy.reduce((best, candidate) => (
+        Math.abs(candidate.frame - failed.frame) < Math.abs(best.frame - failed.frame)
+          ? candidate
+          : best
+      ))
+      failed.image.src = nearest.image.currentSrc || nearest.image.src
+      failed.image.dataset.motionImageFallback = 'nearest-frame'
+      decoded[failed.index] = await decodeMotionImage(failed.image)
+    }
+  }
+}
+
 const decodeMotionImages = async (root: HTMLElement) => {
   const images = [...root.querySelectorAll<HTMLImageElement>('img')]
-  await Promise.all(images.map(async image => {
-    if (typeof image.decode === 'function') {
-      try {
-        await image.decode()
-      }
-      catch {
-        // A decode failure must not deadlock slide activation. The normal image
-        // fallback remains visible and the player can continue.
-      }
-      return
-    }
-    if (image.complete) return
-    await new Promise<void>(resolve => {
-      const done = () => resolve()
-      image.addEventListener('load', done, { once: true })
-      image.addEventListener('error', done, { once: true })
-    })
-  }))
+  const decoded = await decodeInBatches(images)
+  await recoverFailedSequenceFrames(images, decoded)
 
-  // Give complex SVG data-URIs one paint opportunity before opacity steps can
+  const failures = images.filter((image, index) => !decoded[index] || image.naturalWidth <= 0)
+  if (failures.length) {
+    console.warn(`[PPTist motion] ${failures.length} image frame(s) could not be decoded`)
+  }
+
+  // Give complex SVG/Blob images one paint opportunity before opacity steps can
   // hide the currently covered frame.
-  await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+  await nextPaint()
 }
 
 export default (

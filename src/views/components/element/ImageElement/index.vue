@@ -41,7 +41,7 @@
 
         <div class="image-content" :style="{ clipPath: clipShape.style }">
           <img 
-            :src="elementInfo.src" 
+            :src="resolvedSrc" 
             :draggable="false" 
             :style="{
               top: imgPosition.top,
@@ -50,6 +50,7 @@
               height: imgPosition.height,
               filter: filter,
             }" 
+            @error="handleImageError"
             @dragstart.prevent
             alt=""
           />
@@ -77,6 +78,7 @@ import useElementFlip from '@/views/components/element/hooks/useElementFlip'
 import useHistorySnapshot from '@/hooks/useHistorySnapshot'
 import useClipImage from './useClipImage'
 import useFilter from './useFilter'
+import useResilientImageSource from './useResilientImageSource'
 
 import ImageOutline from './ImageOutline/index.vue'
 import ImageClipHandler from './ImageClipHandler.vue'
@@ -107,6 +109,9 @@ const { clipShape, imgPosition } = useClipImage(imageElement)
 
 const filters = computed(() => props.elementInfo.filters)
 const { filter } = useFilter(filters)
+
+const source = computed(() => props.elementInfo.src)
+const { resolvedSrc, handleImageError } = useResilientImageSource(source)
 
 const handleSelectElement = (e: MouseEvent | TouchEvent) => {
   if (props.elementInfo.lock) return
