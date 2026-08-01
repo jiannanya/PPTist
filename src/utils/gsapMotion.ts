@@ -1,6 +1,7 @@
 import { gsap } from 'gsap'
 import type { SlideMotion, SlideMotionPosition, SlideMotionTween, SlideMotionVars } from '@/types/slides'
 import { appendGsapifyEffect } from '@/utils/gsapifyEffectRuntime'
+import { resolveMotionEase } from '@/utils/animeEase'
 
 const ALLOWED_VARS = new Set([
   'duration',
@@ -72,9 +73,45 @@ export interface CreateMotionTimelineOptions {
 
 export const sanitizeMotionVars = (vars?: SlideMotionVars): gsap.TweenVars => {
   if (!vars) return {}
-  return Object.fromEntries(
+  const result = Object.fromEntries(
     Object.entries(vars).filter(([key]) => ALLOWED_VARS.has(key))
   ) as gsap.TweenVars
+  // Bridge anime.js eases: an `anime:`-prefixed ease token becomes an anime.js
+  // easing function (used as a GSAP function ease). Native GSAP ease strings
+  // pass through untouched; an unresolvable token is dropped so GSAP falls back
+  // to its default instead of choking on an unknown string. This single hook
+  // covers defaults, set, from, to, and both halves of fromTo.
+  if ('ease' in result) {
+    const resolved = resolveMotionEase(result.ease)
+    if (resolved === undefined) delete result.ease
+    else result.ease = resolved as gsap.TweenVars['ease']
+  }
+  // Keyframes carry their own per-segment ease. A camera path expressed as one
+  // `$stage` keyframes tween is the cleanest way to author a continuous,
+  // silky multi-waypoint move, so resolve `anime:` tokens inside each keyframe
+  // too (array form — the object/percentage form uses `easeEach`, handled here
+  // as well). Non-object entries and unknown keys are left untouched.
+  if (Array.isArray(result.keyframes)) {
+    result.keyframes = (result.keyframes as unknown[]).map(frame => {
+      if (!frame || typeof frame !== 'object') return frame
+      const kf = { ...(frame as Record<string, unknown>) }
+      if ('ease' in kf) {
+        const resolved = resolveMotionEase(kf.ease)
+        if (resolved === undefined) delete kf.ease
+        else kf.ease = resolved
+      }
+      return kf
+    }) as gsap.TweenVars['keyframes']
+  }
+  else if (result.keyframes && typeof result.keyframes === 'object') {
+    const kfObj = result.keyframes as Record<string, unknown>
+    if ('easeEach' in kfObj) {
+      const resolved = resolveMotionEase(kfObj.easeEach)
+      if (resolved === undefined) delete kfObj.easeEach
+      else kfObj.easeEach = resolved
+    }
+  }
+  return result
 }
 
 export const normalizeMotionPosition = (position?: SlideMotionPosition) => {

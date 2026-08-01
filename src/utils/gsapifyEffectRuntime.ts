@@ -16,6 +16,11 @@ import { SplitText } from 'gsap/SplitText'
 import { TextPlugin } from 'gsap/TextPlugin'
 import { GSAPIFY_EFFECTS_BY_ID } from '@/data/gsapifyEffects'
 import type { SlideMotionPosition, SlideMotionTween } from '@/types/slides'
+import { resolveMotionEase } from '@/utils/animeEase'
+import type { EaseFunction } from '@/utils/animeEase'
+
+/** A GSAPify effect ease: a GSAP ease string or a resolved anime.js function ease. */
+type EffectEase = string | EaseFunction
 
 gsap.registerPlugin(
   CustomEase,
@@ -188,7 +193,7 @@ const buildSplitEffect = (
   timeline: gsap.core.Timeline,
   targets: HTMLElement[],
   duration: number,
-  ease: string,
+  ease: EffectEase,
   addCleanup: (cleanup: () => void) => void
 ) => {
   const mode = effectId === 'kinetic-split-lines'
@@ -328,7 +333,7 @@ const buildDrawEffect = (
   timeline: gsap.core.Timeline,
   targets: HTMLElement[],
   duration: number,
-  ease: string
+  ease: EffectEase
 ) => {
   const paths = svgPaths(targets)
   if (!paths.length) {
@@ -359,7 +364,7 @@ const buildMorphEffect = (
   timeline: gsap.core.Timeline,
   targets: HTMLElement[],
   duration: number,
-  ease: string
+  ease: EffectEase
 ) => {
   const paths = svgPaths(targets)
   if (paths.length >= 2) {
@@ -543,7 +548,7 @@ const buildFlipEffect = (
   timeline: gsap.core.Timeline,
   targets: HTMLElement[],
   duration: number,
-  ease: string
+  ease: EffectEase
 ) => {
   const state = Flip.getState(targets)
   gsap.set(targets, {
@@ -656,7 +661,7 @@ const buildCoreEffect = (
   timeline: gsap.core.Timeline,
   targets: HTMLElement[],
   duration: number,
-  ease: string
+  ease: EffectEase
 ) => {
   const many = Math.max(1, targets.length)
 
@@ -863,7 +868,7 @@ const buildShowcase = (
   root: HTMLElement,
   targets: HTMLElement[],
   duration: number,
-  ease: string,
+  ease: EffectEase,
   addCleanup: (cleanup: () => void) => void
 ) => {
   if (effectId === 'particle-text') {
@@ -909,7 +914,9 @@ export const appendGsapifyEffect = ({
   if (!definition || !targets.length) return false
 
   const duration = Math.max(0.05, getNumber(step, 'duration', definition.duration))
-  const ease = getString(step, 'ease', 'power3.out')
+  // Resolve `anime:`-prefixed ease tokens to anime.js function eases; native
+  // GSAP ease strings pass through unchanged.
+  const ease: EffectEase = resolveMotionEase(getString(step, 'ease', 'power3.out')) ?? 'power3.out'
   const resolvedTargets = expandTargets(root, targets)
   if (!resolvedTargets.length) return false
 
