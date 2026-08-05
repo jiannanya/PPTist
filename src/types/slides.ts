@@ -820,6 +820,8 @@ export type SceneTransition = 'cut' | Exclude<TurningMode, 'no' | 'random'>
 export interface SlideScene {
   version: 1
   kind: 'scene' | 'shot'
+  knowledgePoint: string
+  knowledgePointException?: string
   subject: string
   supportingContent: string[]
   purpose?: string
