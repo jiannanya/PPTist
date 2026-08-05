@@ -56,9 +56,9 @@ export default () => {
         const unknownFile = dataTransferFirstItem.getAsFile()
 
         if (unknownFile && unknownFile.name) {
-          const ext = unknownFile.name.split('.').pop() || ''
+          const ext = (unknownFile.name.split('.').pop() || '').toLowerCase()
 
-          if (ext === 'pptist') {
+          if (ext === 'pptist' || ext === 'pptistx') {
             importSpecificFile([unknownFile])
             isFile = true
           }

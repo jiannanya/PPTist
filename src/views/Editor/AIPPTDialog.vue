@@ -2,7 +2,7 @@
   <div class="aippt-dialog">
     <div class="header">
       <span class="title">AIPPT</span>
-      <span class="subtite" v-if="step === 'template'">从下方挑选合适的模板生成PPT，或<span class="local" v-tooltip="'上传.pptist格式模板文件'" @click="uploadLocalTemplate()">使用本地模板生成</span></span>
+      <span class="subtite" v-if="step === 'template'">从下方挑选合适的模板生成PPT，或<span class="local" v-tooltip="'上传 .pptistx/.pptist 格式模板文件'" @click="uploadLocalTemplate()">使用本地模板生成</span></span>
       <span class="subtite" v-else-if="step === 'outline'">确认下方内容大纲（点击编辑内容，右键添加/删除大纲项），开始选择模板</span>
       <span class="subtite" v-else>在下方输入您的PPT主题，并适当补充信息，如行业、岗位、学科、用途等</span>
     </div>
@@ -298,7 +298,7 @@ const createPPT = async (template?: { slides: Slide[], theme: SlideTheme }) => {
 const uploadLocalTemplate = () => {
   const input = document.createElement('input')
   input.type = 'file'
-  input.accept = '.pptist'
+  input.accept = '.pptistx,.pptist'
   input.click()
   input.addEventListener('change', e => {
     const file = (e.target as HTMLInputElement).files?.[0]

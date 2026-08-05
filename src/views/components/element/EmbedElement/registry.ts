@@ -1,7 +1,7 @@
 /**
  * Trusted local registry for the live `embed` element.
  *
- * SECURITY: a `.pptist` stores ONLY sanitized data (the element's `spec`), never
+ * SECURITY: a `.pptistx`/`.pptist` stores ONLY sanitized data (the element's `spec`), never
  * executable JavaScript. This registry is the single place that turns a
  * `vizKind` + data `spec` into DOM, so no code carried by a deck is ever run.
  *

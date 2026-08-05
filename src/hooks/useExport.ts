@@ -10,6 +10,12 @@ import { getElementRange, getLineElementPath, getTableSubThemeColor } from '@/ut
 import { type AST, toAST } from '@/utils/htmlParser'
 import { type SvgPoints, toPoints } from '@/utils/svgPathParser'
 import { encrypt } from '@/utils/crypto'
+import {
+  createPptistxPlayback,
+  normalizePptistxSlides,
+  PPTISTX_FORMAT,
+  PPTISTX_FORMAT_VERSION,
+} from '@/utils/pptistx'
 import { svg2Base64 } from '@/utils/svg2Base64'
 import message from '@/utils/message'
 
@@ -118,17 +124,22 @@ export default () => {
     }, 200)
   }
   
-  // 导出pptist文件（特有 .pptist 后缀文件）
+  // 导出 PPTISTX 分镜文件。数据仍使用与历史 .pptist 相同的 AES JSON
+  // 容器；新元数据只负责 scene 自动播放与硬切优先的默认行为。
   const exportSpecificFile = (_slides: Slide[]) => {
+    const playback = createPptistxPlayback()
     const json = {
+      format: PPTISTX_FORMAT,
+      formatVersion: PPTISTX_FORMAT_VERSION,
+      playback,
       title: title.value,
       width: viewportSize.value,
       height: viewportSize.value * viewportRatio.value,
       theme: theme.value,
-      slides: _slides,
+      slides: normalizePptistxSlides(_slides, playback.defaultSceneDuration),
     }
-    const blob = new Blob([encrypt(JSON.stringify(json))], { type: '' })
-    saveAs(blob, `${title.value}.pptist`)
+    const blob = new Blob([encrypt(JSON.stringify(json))], { type: 'application/x-pptistx' })
+    saveAs(blob, `${title.value}.pptistx`)
   }
   
   // 导出JSON文件

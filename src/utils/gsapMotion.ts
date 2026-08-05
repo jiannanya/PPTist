@@ -194,7 +194,7 @@ export const calculateMotionStepTimings = (motion?: SlideMotion): MotionStepTimi
 export const getMotionDuration = (motion?: SlideMotion) => {
   if (!motion) return 5
   const contentDuration = Math.max(0, ...calculateMotionStepTimings(motion).map(item => item.end))
-  return Math.max(1, motion.duration || 0, contentDuration)
+  return Math.max(0, motion.duration || 0, contentDuration)
 }
 
 export const createMotionTimeline = (

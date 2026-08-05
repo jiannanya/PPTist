@@ -5,6 +5,7 @@ import { nanoid } from 'nanoid'
 import tinycolor from 'tinycolor2'
 import { useSlidesStore } from '@/store'
 import { decrypt } from '@/utils/crypto'
+import { isPptistxDocument, normalizePptistxSlides } from '@/utils/pptistx'
 import { isFloatEqual } from '@/utils/common'
 import { type ShapePoolItem, SHAPE_LIST, SHAPE_PATH_FORMULAS } from '@/configs/shapes'
 import useAddSlidesOrElements from '@/hooks/useAddSlidesOrElements'
@@ -361,14 +362,18 @@ export default () => {
     reader.readAsText(file)
   }
 
-  // 导入pptist文件
+  // 导入 PPTISTX 分镜文件或历史 PPTIST 文件
   const importSpecificFile = (files: FileList | File[], cover = false) => {
     const file = files[0]
 
     const reader = new FileReader()
     reader.addEventListener('load', () => {
       try {
-        const { title, slides, theme, width, height } = JSON.parse(decrypt(reader.result as string))
+        const document = JSON.parse(decrypt(reader.result as string))
+        const { title, theme, width, height } = document
+        const slides = isPptistxDocument(file.name, document)
+          ? normalizePptistxSlides(document.slides || [], document.playback?.defaultSceneDuration)
+          : document.slides
         const aspectRatio = getAspectRatio(width, height)
 
         if (cover) {

@@ -7,7 +7,7 @@
  * silky-smooth easing catalog can drive GSAP tweens — most importantly the
  * `$stage` camera track — without leaving the GSAP timeline.
  *
- * Serialized `.pptist` motion data stays pure data: an ease is written as a
+ * Serialized `.pptistx`/`.pptist` motion data stays pure data: an ease is written as a
  * short string token such as `"anime:inOutSine"`, `"anime:outBack(1.7)"`, or
  * `"anime:spring(0.3, 700)"`. This module parses that token (name + numeric
  * args only — never executable JS) and returns the corresponding anime.js

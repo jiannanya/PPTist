@@ -4,6 +4,7 @@ import type { SlideMotion } from '@/types/slides'
 import {
   createMotionTimeline,
   disposeMotionTimeline,
+  getMotionDuration,
   resolveMotionTargets,
   sanitizeMotionVars,
 } from '@/utils/gsapMotion'
@@ -202,6 +203,13 @@ export default (
     if (token !== buildToken || !activeRef.value) return
 
     const allTargets = resolveMotionTargets(root, [...new Set(motion.steps.flatMap(step => step.elIds))])
+    const handleComplete = () => {
+      if (
+        token === buildToken &&
+        activeRef.value &&
+        motion.autoAdvance
+      ) onMotionComplete?.()
+    }
     matchMedia = gsap.matchMedia()
     matchMedia.add(
       {
@@ -212,23 +220,19 @@ export default (
         const reduceMotion = !!context.conditions?.reduceMotion
 
         if (reduceMotion) {
+          const duration = getMotionDuration(motion)
           if (motion.reducedMotion === 'fade' && allTargets.length) {
-            timeline = gsap.timeline({ paused: true })
+            timeline = gsap.timeline({ paused: true, onComplete: handleComplete })
               .from(allTargets, { autoAlpha: 0, duration: 0.18, stagger: 0.01, ease: 'none' })
           }
           else {
-            timeline = gsap.timeline({ paused: true })
+            timeline = gsap.timeline({ paused: true, onComplete: handleComplete })
           }
+          if (duration > timeline.duration()) timeline.call(() => {}, [], duration)
         }
         else {
           timeline = createMotionTimeline(root, motion, {
-            onComplete: () => {
-              if (
-                token === buildToken &&
-                activeRef.value &&
-                motion.autoAdvance
-              ) onMotionComplete?.()
-            },
+            onComplete: handleComplete,
           })
         }
 

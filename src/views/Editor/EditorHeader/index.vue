@@ -32,16 +32,16 @@
                 <span class="label">JSON</span>
                 <span class="sub-label">（仅供测试）</span>
               </FileInput>
-              <FileInput class="import-block" accept=".pptist" @change="files => {
-                // A .pptist file is a complete editable project: open it with its
+              <FileInput class="import-block" accept=".pptistx,.pptist" @change="files => {
+                // A .pptistx/.pptist file is a complete editable project: open it with its
                 // own title, theme and canvas ratio instead of appending it to the
                 // currently open document.
                 importSpecificFile(files, true)
                 mainMenuVisible = false
               }">
                 <span class="icon"><i-custom:file-pptist /></span>
-                <span class="label">PPTIST</span>
-                <span class="sub-label">（专属格式）</span>
+                <span class="label">PPTISTX</span>
+                <span class="sub-label">（兼容 PPTIST）</span>
               </FileInput>
             </div>
           </div>

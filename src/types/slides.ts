@@ -673,7 +673,7 @@ export interface PPTAudioElement extends PPTBaseElement {
  *
  * type: 元素类型（embed）
  *
- * vizKind: 渲染器种类，由本地可信注册表解析（禁止在 .pptist 内存放可执行 JS）
+ * vizKind: 渲染器种类，由本地可信注册表解析（禁止在 .pptistx/.pptist 内存放可执行 JS）
  *
  * spec: 传给注册表渲染器的、经过消毒的纯数据描述（如 echarts option、rough ops）
  *
@@ -810,6 +810,23 @@ export interface SlideBackground {
 
 export type TurningMode = 'no' | 'fade' | 'slideX' | 'slideY' | 'random' | 'slideX3D' | 'slideY3D' | 'rotate' | 'scaleY' | 'scaleX' | 'scale' | 'scaleReverse'
 
+export type SceneTransition = 'cut' | Exclude<TurningMode, 'no' | 'random'>
+
+/**
+ * Authoring metadata for a PPTISTX scene/shot. It is never rendered on the
+ * audience-facing canvas. `subject` names the single visual focus;
+ * `supportingContent` lists only the context needed to understand that focus.
+ */
+export interface SlideScene {
+  version: 1
+  kind: 'scene' | 'shot'
+  subject: string
+  supportingContent: string[]
+  purpose?: string
+  duration?: number
+  transitionOut?: SceneTransition
+}
+
 export interface NoteReply {
   id: string
   content: string
@@ -848,6 +865,8 @@ export type SlideType = 'cover' | 'contents' | 'transition' | 'content' | 'end'
  * 
  * animations?: 元素动画集合
  * 
+ * scene?: PPTISTX 镜头规划元数据
+ *
  * turningMode?: 翻页方式
  * 
  * slideType?: 页面类型
@@ -860,6 +879,7 @@ export interface Slide {
   background?: SlideBackground
   animations?: PPTAnimation[]
   motion?: SlideMotion
+  scene?: SlideScene
   turningMode?: TurningMode
   sectionTag?: SectionTag
   type?: SlideType
